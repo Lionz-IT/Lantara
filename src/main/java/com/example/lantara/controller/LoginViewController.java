@@ -88,13 +88,9 @@ public class LoginViewController {
      * Mengatur semua navigasi keyboard (Enter, Atas, Bawah).
      */
     private void setupKeyboardNavigation() {
-        // Pindah fokus ke password saat Enter di username
         usernameField.setOnAction(event -> passwordField.requestFocus());
-        
-        // Klik tombol login saat Enter di password
         passwordField.setOnAction(event -> loginButton.fire());
 
-        // Navigasi dengan panah Atas/Bawah
         usernameField.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.DOWN) {
                 passwordField.requestFocus();

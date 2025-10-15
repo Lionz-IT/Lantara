@@ -27,19 +27,14 @@ public class DashboardController {
     private User currentUser;
     private Button currentButton;
 
-    /**
-     * Menerima data pengguna dari LoginViewController dan memulai tampilan awal.
-     */
     public void initData(User user) {
         this.currentUser = user;
         String username = user.getUsername();
         String capitalizedUsername = username.substring(0, 1).toUpperCase() + username.substring(1);
         welcomeLabel.setText("Selamat Datang, " + capitalizedUsername + "!");
-        
-        // Atur halaman Dashboard sebagai halaman default saat pertama kali masuk
         handleBtnDashboard();
     }
-
+    
     @FXML
     private void handleBtnDashboard() {
         setActiveButton(btnDashboard);
@@ -55,7 +50,8 @@ public class DashboardController {
     @FXML
     private void handleBtnPengemudi() {
         setActiveButton(btnPengemudi);
-        loadView("driver-view.fxml");
+        // Pastikan baris ini memuat file FXML yang benar
+        loadView("driver-view.fxml"); 
     }
 
     @FXML
@@ -69,48 +65,33 @@ public class DashboardController {
         try {
             Stage currentStage = (Stage) btnLogout.getScene().getWindow();
             currentStage.close();
-
             Parent root = FXMLLoader.load(MainApp.class.getResource("view/role-selection-view.fxml"));
             Stage roleStage = new Stage();
             roleStage.setTitle("LANTARA - Pilih Peran");
             roleStage.setScene(new Scene(root));
             roleStage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        } catch (IOException e) { e.printStackTrace(); }
     }
 
-    /**
-     * Mengatur gaya visual untuk tombol sidebar yang sedang aktif.
-     */
     private void setActiveButton(Button button) {
-        if (currentButton != null) {
-            currentButton.getStyleClass().remove("selected");
-        }
+        if (currentButton != null) { currentButton.getStyleClass().remove("selected"); }
         button.getStyleClass().add("selected");
         currentButton = button;
     }
 
-    /**
-     * Memuat file FXML ke dalam area konten dan membuatnya responsif.
-     */
     private void loadView(String fxmlFile) {
         try {
             URL fileUrl = MainApp.class.getResource("view/" + fxmlFile);
             if (fileUrl == null) {
                 throw new java.io.FileNotFoundException("File FXML tidak ditemukan: " + fxmlFile);
             }
-            
             FXMLLoader loader = new FXMLLoader(fileUrl);
             Pane view = loader.load();
-
-            // Atur anchor agar konten yang dimuat mengisi seluruh contentArea
             AnchorPane.setTopAnchor(view, 0.0);
             AnchorPane.setBottomAnchor(view, 0.0);
             AnchorPane.setLeftAnchor(view, 0.0);
             AnchorPane.setRightAnchor(view, 0.0);
 
-            // Berikan data pengguna (currentUser) ke controller yang sesuai
             Object controller = loader.getController();
             if (controller instanceof MainViewController) {
                 ((MainViewController) controller).initData(currentUser);
@@ -121,9 +102,7 @@ public class DashboardController {
             } else if (controller instanceof DriverViewController) {
                 ((DriverViewController) controller).initData(currentUser);
             }
-
             contentArea.getChildren().setAll(view);
-
         } catch (IOException e) {
             e.printStackTrace();
         }
