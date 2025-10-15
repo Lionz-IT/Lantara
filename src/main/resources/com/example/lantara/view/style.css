@@ -79,7 +79,6 @@
 /* =============================================================== */
 /* ==         GAYA HALAMAN DASHBOARD                            == */
 /* =============================================================== */
-
 .sidebar {
     -fx-background-color: #0A2647;
 }
@@ -99,10 +98,13 @@
     -fx-background-color: #144272;
     -fx-text-fill: white;
 }
+
+/* --- GAYA BARU UNTUK TOMBOL AKTIF/TERPILIH --- */
 .sidebar-button:selected {
-    -fx-background-color: #205295;
-    -fx-text-fill: white;
+    -fx-background-color: #205295; /* Warna latar belakang lebih terang */
+    -fx-text-fill: white;         /* Warna teks putih */
 }
+/* ------------------------------------------- */
 
 .logout-button {
     -fx-background-color: transparent;

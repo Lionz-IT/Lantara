@@ -25,13 +25,14 @@ public class DashboardController {
     @FXML private Label welcomeLabel;
 
     private User currentUser;
-    private Button currentButton;
+    private Button currentButton; // Variabel untuk melacak tombol yang aktif
 
     public void initData(User user) {
         this.currentUser = user;
         String username = user.getUsername();
         String capitalizedUsername = username.substring(0, 1).toUpperCase() + username.substring(1);
         welcomeLabel.setText("Selamat Datang, " + capitalizedUsername + "!");
+        
         handleBtnDashboard();
     }
     
@@ -50,7 +51,6 @@ public class DashboardController {
     @FXML
     private void handleBtnPengemudi() {
         setActiveButton(btnPengemudi);
-        // Pastikan baris ini memuat file FXML yang benar
         loadView("driver-view.fxml"); 
     }
 
@@ -73,9 +73,17 @@ public class DashboardController {
         } catch (IOException e) { e.printStackTrace(); }
     }
 
+    /**
+     * Metode baru untuk mengatur gaya tombol yang aktif.
+     */
     private void setActiveButton(Button button) {
-        if (currentButton != null) { currentButton.getStyleClass().remove("selected"); }
+        // Hapus gaya 'selected' dari tombol sebelumnya jika ada
+        if (currentButton != null) {
+            currentButton.getStyleClass().remove("selected");
+        }
+        // Tambahkan gaya 'selected' ke tombol yang baru ditekan
         button.getStyleClass().add("selected");
+        // Perbarui referensi tombol saat ini
         currentButton = button;
     }
 
