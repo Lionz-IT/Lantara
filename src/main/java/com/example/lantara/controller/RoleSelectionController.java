@@ -23,9 +23,42 @@ public class RoleSelectionController {
     private void handleStaffButton() {
         openLoginScreen("STAF");
     }
+    
+    /**
+     * Metode baru untuk kembali ke Landing Page.
+     */
+    @FXML
+    private void handleBackButton() {
+        try {
+            Stage currentStage = (Stage) managerButton.getScene().getWindow();
+            double width = currentStage.getWidth();
+            double height = currentStage.getHeight();
+            boolean isMaximized = currentStage.isMaximized();
+            currentStage.close();
+
+            Parent root = FXMLLoader.load(MainApp.class.getResource("view/landing-page-view.fxml"));
+            Stage landingStage = new Stage();
+            landingStage.setTitle("LANTARA");
+            landingStage.setScene(new Scene(root, width, height));
+
+            if (isMaximized) {
+                landingStage.setMaximized(true);
+            }
+            
+            landingStage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     private void openLoginScreen(String role) {
         try {
+            Stage currentStage = (Stage) managerButton.getScene().getWindow();
+            double width = currentStage.getWidth();
+            double height = currentStage.getHeight();
+            boolean isMaximized = currentStage.isMaximized();
+            currentStage.close();
+
             FXMLLoader loader = new FXMLLoader(MainApp.class.getResource("view/login-view.fxml"));
             Parent root = loader.load();
 
@@ -33,22 +66,17 @@ public class RoleSelectionController {
             loginController.initRole(role);
 
             Stage stage = new Stage();
-            stage.setTitle("LANTARA - Login " + role.substring(0, 1).toUpperCase() + role.substring(1).toLowerCase());
+            stage.setTitle("LANTARA - Login " + role);
+            stage.setScene(new Scene(root, width, height));
 
-            // --- UBAH UKURAN TINGGI JENDELA DI SINI ---
-            Scene scene = new Scene(root, 600, 600); // Tinggi diubah dari 400 menjadi 550
-            
-            stage.setScene(scene);
+            if (isMaximized) {
+                stage.setMaximized(true);
+            }
+
             stage.show();
 
-            closeWindow();
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private void closeWindow() {
-        Stage stage = (Stage) managerButton.getScene().getWindow();
-        stage.close();
     }
 }

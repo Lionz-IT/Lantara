@@ -17,15 +17,23 @@ public class LandingPageController {
     @FXML
     private void handleLoginButton() {
         try {
-            // Dapatkan stage saat ini dan tutup
+            // Dapatkan stage & ukurannya saat ini
             Stage currentStage = (Stage) loginButton.getScene().getWindow();
+            double width = currentStage.getWidth();
+            double height = currentStage.getHeight();
+            boolean isMaximized = currentStage.isMaximized();
             currentStage.close();
 
-            // Buka jendela pemilihan peran
+            // Buka jendela baru dengan ukuran yang sama
             Parent root = FXMLLoader.load(MainApp.class.getResource("view/role-selection-view.fxml"));
             Stage roleStage = new Stage();
             roleStage.setTitle("LANTARA - Pilih Peran");
-            roleStage.setScene(new Scene(root));
+            roleStage.setScene(new Scene(root, width, height)); // Gunakan ukuran yang disimpan
+
+            if (isMaximized) {
+                roleStage.setMaximized(true);
+            }
+            
             roleStage.show();
         } catch (IOException e) {
             e.printStackTrace();

@@ -63,17 +63,27 @@ public class LoginViewController {
     @FXML
     private void handleBackButton() {
         try {
+            Stage currentStage = (Stage) loginButton.getScene().getWindow();
+            double width = currentStage.getWidth();
+            double height = currentStage.getHeight();
+            boolean isMaximized = currentStage.isMaximized();
+            currentStage.close();
+
             Parent root = FXMLLoader.load(MainApp.class.getResource("view/role-selection-view.fxml"));
             Stage roleStage = new Stage();
             roleStage.setTitle("LANTARA - Pilih Peran");
-            roleStage.setScene(new Scene(root));
+            roleStage.setScene(new Scene(root, width, height));
+
+            if (isMaximized) {
+                roleStage.setMaximized(true);
+            }
+
             roleStage.show();
-            closeLoginWindow();
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-    
+    }   
+
     private void setupKeyboardNavigation() {
         usernameField.setOnAction(event -> passwordField.requestFocus());
         passwordField.setOnAction(event -> loginButton.fire());
@@ -111,8 +121,14 @@ public class LoginViewController {
 
     private void openMainWindow(User user) {
         try {
+            Stage currentStage = (Stage) loginButton.getScene().getWindow();
+            double width = currentStage.getWidth();
+            double height = currentStage.getHeight();
+            boolean isMaximized = currentStage.isMaximized();
+            // Jendela login akan ditutup oleh closeLoginWindow() yang dipanggil sebelumnya
+
             FXMLLoader fxmlLoader = new FXMLLoader(MainApp.class.getResource("view/dashboard-view.fxml"));
-            Scene scene = new Scene(fxmlLoader.load()); 
+            Scene scene = new Scene(fxmlLoader.load(), width, height); 
             
             DashboardController dashboardController = fxmlLoader.getController();
             dashboardController.initData(user);
@@ -120,13 +136,17 @@ public class LoginViewController {
             Stage mainStage = new Stage();
             mainStage.setTitle("LANTARA - Manajemen Armada");
             mainStage.setScene(scene);
-            mainStage.setMaximized(true);
+
+            if (isMaximized) {
+                mainStage.setMaximized(true);
+            }
+
             mainStage.show();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    
+
     private void closeLoginWindow() {
         Stage stage = (Stage) loginButton.getScene().getWindow();
         stage.close();

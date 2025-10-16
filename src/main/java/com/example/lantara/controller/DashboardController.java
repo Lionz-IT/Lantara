@@ -49,14 +49,23 @@ public class DashboardController {
     private void handleBtnLogout() {
         try {
             Stage currentStage = (Stage) btnLogout.getScene().getWindow();
+            double width = currentStage.getWidth();
+            double height = currentStage.getHeight();
+            boolean isMaximized = currentStage.isMaximized();
             currentStage.close();
+
             Parent root = FXMLLoader.load(MainApp.class.getResource("view/role-selection-view.fxml"));
             Stage roleStage = new Stage();
             roleStage.setTitle("LANTARA - Pilih Peran");
-            roleStage.setScene(new Scene(root));
+            roleStage.setScene(new Scene(root, width, height));
+
+            if (isMaximized) {
+                roleStage.setMaximized(true);
+            }
+            
             roleStage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException e) { 
+            e.printStackTrace(); 
         }
     }
 
