@@ -2,6 +2,9 @@ package com.example.lantara.controller;
 
 import java.io.IOException;
 import java.net.URL;
+import javafx.animation.FadeTransition;
+import javafx.animation.ParallelTransition;
+import javafx.animation.ScaleTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -11,6 +14,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import com.example.lantara.MainApp;
 import com.example.lantara.model.User;
 
@@ -25,7 +29,7 @@ public class DashboardController {
     @FXML private Label welcomeLabel;
 
     private User currentUser;
-    private Button currentButton; // Variabel untuk melacak tombol yang aktif
+    private Button currentButton;
 
     public void initData(User user) {
         this.currentUser = user;
@@ -36,29 +40,10 @@ public class DashboardController {
         handleBtnDashboard();
     }
     
-    @FXML
-    private void handleBtnDashboard() {
-        setActiveButton(btnDashboard);
-        loadView("dashboard-content-view.fxml");
-    }
-    
-    @FXML
-    private void handleBtnKendaraan() {
-        setActiveButton(btnKendaraan);
-        loadView("main-view.fxml");
-    }
-
-    @FXML
-    private void handleBtnPengemudi() {
-        setActiveButton(btnPengemudi);
-        loadView("driver-view.fxml"); 
-    }
-
-    @FXML
-    private void handleBtnPenugasan() {
-        setActiveButton(btnPenugasan);
-        loadView("assignment-view.fxml");
-    }
+    @FXML private void handleBtnDashboard() { setActiveButton(btnDashboard); loadView("dashboard-content-view.fxml"); }
+    @FXML private void handleBtnKendaraan() { setActiveButton(btnKendaraan); loadView("main-view.fxml"); }
+    @FXML private void handleBtnPengemudi() { setActiveButton(btnPengemudi); loadView("driver-view.fxml"); }
+    @FXML private void handleBtnPenugasan() { setActiveButton(btnPenugasan); loadView("assignment-view.fxml"); }
     
     @FXML
     private void handleBtnLogout() {
@@ -70,24 +55,51 @@ public class DashboardController {
             roleStage.setTitle("LANTARA - Pilih Peran");
             roleStage.setScene(new Scene(root));
             roleStage.show();
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
-     * Metode baru untuk mengatur gaya tombol yang aktif.
+     * Mengatur gaya dan menjalankan animasi untuk tombol sidebar yang aktif.
      */
     private void setActiveButton(Button button) {
-        // Hapus gaya 'selected' dari tombol sebelumnya jika ada
+        // Logika untuk highlight (tetap ada)
         if (currentButton != null) {
             currentButton.getStyleClass().remove("selected");
         }
-        // Tambahkan gaya 'selected' ke tombol yang baru ditekan
         button.getStyleClass().add("selected");
-        // Perbarui referensi tombol saat ini
         currentButton = button;
+
+        // --- ANIMASI BARU "RIAK AIR" ---
+        playRippleAnimation(button);
+    }
+    
+    /**
+     * Metode baru untuk membuat animasi riak air.
+     */
+    private void playRippleAnimation(Button button) {
+        // Animasi untuk membuat tombol sedikit membesar
+        ScaleTransition st = new ScaleTransition(Duration.millis(200), button);
+        st.setFromX(1.0);
+        st.setFromY(1.0);
+        st.setToX(1.05); // Sedikit membesar
+        st.setToY(1.05);
+        st.setAutoReverse(true); // Otomatis kembali ke ukuran normal
+        st.setCycleCount(2);     // Jalankan animasi bolak-balik (membesar -> normal)
+
+        // Animasi untuk membuat tombol sedikit memudar lalu kembali jelas
+        FadeTransition ft = new FadeTransition(Duration.millis(200), button);
+        ft.setFromValue(0.7);
+        ft.setToValue(1.0);
+
+        // Gabungkan kedua animasi agar berjalan bersamaan
+        ParallelTransition pt = new ParallelTransition(st, ft);
+        pt.play();
     }
 
     private void loadView(String fxmlFile) {
+        // ... (metode loadView Anda yang sudah ada tidak perlu diubah)
         try {
             URL fileUrl = MainApp.class.getResource("view/" + fxmlFile);
             if (fileUrl == null) {

@@ -11,14 +11,13 @@ import java.io.IOException;
 public class MainApp extends Application {
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(MainApp.class.getResource("view/role-selection-view.fxml"));
-        // Ukuran jendela default disesuaikan untuk dashboard
-        Scene scene = new Scene(fxmlLoader.load(), 1280, 720); 
-        stage.setTitle("LANTARA - Pilih Peran");
+        // Arahkan ke landing-page-view.fxml sebagai tampilan awal
+        FXMLLoader fxmlLoader = new FXMLLoader(MainApp.class.getResource("view/landing-page-view.fxml"));
+        Scene scene = new Scene(fxmlLoader.load());
+        stage.setTitle("LANTARA");
         stage.setScene(scene);
         stage.show();
     }
-
     public static void main(String[] args) {
         // Inisialisasi database sebelum aplikasi JavaFX berjalan
         DatabaseHelper.initializeDatabase(); 
