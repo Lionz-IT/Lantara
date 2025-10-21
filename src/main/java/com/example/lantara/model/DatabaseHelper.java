@@ -2,7 +2,6 @@ package com.example.lantara.model;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-
 import java.sql.*;
 
 public class DatabaseHelper {
