@@ -15,8 +15,15 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+
+// --- IMPORT UNTUK KELAS-KELAS YANG DIPERLUKAN ---
 import com.example.lantara.MainApp;
 import com.example.lantara.model.User;
+import com.example.lantara.controller.MainViewController;
+import com.example.lantara.controller.AssignmentViewController;
+import com.example.lantara.controller.DashboardContentController; // Ini yang hilang
+import com.example.lantara.controller.DriverViewController;
+// ---------------------------------------------
 
 public class DashboardController {
 
@@ -36,7 +43,6 @@ public class DashboardController {
         String username = user.getUsername();
         String capitalizedUsername = username.substring(0, 1).toUpperCase() + username.substring(1);
         welcomeLabel.setText("Selamat Datang, " + capitalizedUsername + "!");
-        
         handleBtnDashboard();
     }
     
@@ -58,57 +64,39 @@ public class DashboardController {
             Stage roleStage = new Stage();
             roleStage.setTitle("LANTARA - Pilih Peran");
             roleStage.setScene(new Scene(root, width, height));
-
             if (isMaximized) {
                 roleStage.setMaximized(true);
             }
-            
             roleStage.show();
         } catch (IOException e) { 
             e.printStackTrace(); 
         }
     }
 
-    /**
-     * Mengatur gaya dan menjalankan animasi untuk tombol sidebar yang aktif.
-     */
     private void setActiveButton(Button button) {
-        // Logika untuk highlight (tetap ada)
         if (currentButton != null) {
             currentButton.getStyleClass().remove("selected");
         }
         button.getStyleClass().add("selected");
         currentButton = button;
-
-        // --- ANIMASI BARU "RIAK AIR" ---
         playRippleAnimation(button);
     }
     
-    /**
-     * Metode baru untuk membuat animasi riak air.
-     */
     private void playRippleAnimation(Button button) {
-        // Animasi untuk membuat tombol sedikit membesar
         ScaleTransition st = new ScaleTransition(Duration.millis(200), button);
-        st.setFromX(1.0);
-        st.setFromY(1.0);
-        st.setToX(1.05); // Sedikit membesar
-        st.setToY(1.05);
-        st.setAutoReverse(true); // Otomatis kembali ke ukuran normal
-        st.setCycleCount(2);     // Jalankan animasi bolak-balik (membesar -> normal)
-
-        // Animasi untuk membuat tombol sedikit memudar lalu kembali jelas
+        st.setFromX(1.0); st.setFromY(1.0);
+        st.setToX(1.05); st.setToY(1.05);
+        st.setAutoReverse(true);
+        st.setCycleCount(2);
         FadeTransition ft = new FadeTransition(Duration.millis(200), button);
-        ft.setFromValue(0.7);
-        ft.setToValue(1.0);
-
-        // Gabungkan kedua animasi agar berjalan bersamaan
+        ft.setFromValue(0.7); ft.setToValue(1.0);
+        ft.setAutoReverse(true);
+        ft.setCycleCount(2);
         ParallelTransition pt = new ParallelTransition(st, ft);
         pt.play();
     }
 
     private void loadView(String fxmlFile) {
-        // ... (metode loadView Anda yang sudah ada tidak perlu diubah)
         try {
             URL fileUrl = MainApp.class.getResource("view/" + fxmlFile);
             if (fileUrl == null) {

@@ -1,45 +1,55 @@
 package com.example.lantara.model;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 
 public class Assignment {
-    private String kodePenugasan;
-    private Vehicle vehicle; // Objek dari Class Kendaraan [cite: 47]
-    private Driver driver; // Objek dari Class Pengemudi [cite: 46]
-    private String tujuan;
-    private LocalDate tanggalPenugasan;
-    private LocalDate tanggalKembali;
-    private String statusTugas; // "Berlangsung" atau "Selesai" [cite: 50]
+    private final StringProperty kodePenugasan;
+    private final ObjectProperty<Vehicle> vehicle;
+    private final ObjectProperty<Driver> driver;
+    private final StringProperty tujuan;
+    private final ObjectProperty<LocalDate> tanggalPenugasan;
+    private final ObjectProperty<LocalDate> tanggalKembali;
+    private final StringProperty statusTugas; // "Berlangsung", "Selesai"
 
-    // Constructor untuk membuat penugasan baru
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
     public Assignment(String kodePenugasan, Vehicle vehicle, Driver driver, String tujuan) {
-        this.kodePenugasan = kodePenugasan;
-        this.vehicle = vehicle;
-        this.driver = driver;
-        this.tujuan = tujuan;
-        this.tanggalPenugasan = LocalDate.now();
-        this.statusTugas = "Berlangsung";
+        this.kodePenugasan = new SimpleStringProperty(kodePenugasan);
+        this.vehicle = new SimpleObjectProperty<>(vehicle);
+        this.driver = new SimpleObjectProperty<>(driver);
+        this.tujuan = new SimpleStringProperty(tujuan);
+        this.tanggalPenugasan = new SimpleObjectProperty<>(LocalDate.now());
+        this.tanggalKembali = new SimpleObjectProperty<>(null);
+        this.statusTugas = new SimpleStringProperty("Berlangsung");
 
-        // Otomatis ubah status kendaraan menjadi "Digunakan"
-        this.vehicle.updateStatus("Digunakan");
+        if (vehicle != null) {
+            vehicle.updateStatus("Digunakan");
+        }
     }
 
-    // Method untuk menyelesaikan penugasan
+    // --- JavaFX Property Getters ---
+    public StringProperty kodePenugasanProperty() { return kodePenugasan; }
+    public StringProperty tujuanProperty() { return tujuan; }
+    public StringProperty statusTugasProperty() { return statusTugas; }
+    public StringProperty tanggalPenugasanFormattedProperty() {
+        // Metode ini memformat tanggal agar tampil bagus di tabel
+        return new SimpleStringProperty(tanggalPenugasan.get().format(DATE_FORMATTER));
+    }
+
+    // --- Standard Getters ---
+    public Vehicle getVehicle() { return vehicle.get(); }
+    public Driver getDriver() { return driver.get(); }
+
     public void completeAssignment() {
-        this.statusTugas = "Selesai";
-        this.tanggalKembali = LocalDate.now();
-
-        // Otomatis ubah status kendaraan kembali menjadi "Tersedia"
-        this.vehicle.updateStatus("Tersedia");
-        System.out.println("\nPenugasan " + kodePenugasan + " telah selesai.");
-    }
-
-    public void printAssignmentDetails() {
-        System.out.println("--- Detail Penugasan " + kodePenugasan + " ---");
-        System.out.println("Tujuan: " + tujuan);
-        System.out.println("Tanggal: " + tanggalPenugasan);
-        driver.getDriverInfo();
-        vehicle.getDetails();
-        System.out.println("Status Tugas: " + statusTugas);
+        this.statusTugas.set("Selesai");
+        this.tanggalKembali.set(LocalDate.now());
+        if (vehicle.get() != null) {
+            vehicle.get().updateStatus("Tersedia");
+        }
     }
 }

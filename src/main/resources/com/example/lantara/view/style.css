@@ -291,3 +291,38 @@
     -fx-font-size: 18px;
     -fx-text-fill: #7f8c8d;
 }
+
+/* =============================================================== */
+/* ==               GAYA STATUS PENGEMUDI (BARU)                == */
+/* =============================================================== */
+
+.driver-status-tersedia {
+    -fx-background-color: #d4edda; /* Hijau muda */
+    -fx-text-fill: #155724;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5;
+    -fx-padding: 3px 8px;
+    -fx-alignment: center;
+}
+
+.driver-status-bertugas {
+    -fx-background-color: #f8d7da; /* Merah muda */
+    -fx-text-fill: #721c24;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5;
+    -fx-padding: 3px 8px;
+    -fx-alignment: center;
+}
+
+.assignment-info-title {
+    -fx-font-size: 12px;
+    -fx-text-fill: #7f8c8d;
+}
+
+.assignment-info-detail {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}

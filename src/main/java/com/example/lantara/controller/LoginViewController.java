@@ -1,9 +1,9 @@
 package com.example.lantara.controller;
 
 import java.io.IOException;
-import javafx.animation.SequentialTransition;
 import javafx.animation.FadeTransition;
 import javafx.animation.ParallelTransition;
+import javafx.animation.SequentialTransition;
 import javafx.animation.TranslateTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -19,14 +19,15 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-// --- PERBAIKI IMPORT DI BAWAH INI ---
+// --- IMPORT YANG DIPERLUKAN ---
 import com.example.lantara.MainApp;
 import com.example.lantara.model.DatabaseHelper;
 import com.example.lantara.model.User;
-// ------------------------------------
+import com.example.lantara.controller.DashboardController; // Import ini juga
+// -----------------------------
 
 public class LoginViewController {
-    
+
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
     @FXML private Button loginButton;
@@ -36,7 +37,7 @@ public class LoginViewController {
     @FXML private Label titleLabel;
 
     private String selectedRole;
-    
+
     @FXML
     public void initialize() {
         playIntroAnimation();
@@ -53,8 +54,8 @@ public class LoginViewController {
         String password = passwordField.getText().trim();
         User authenticatedUser = authenticate(username, password);
         if (authenticatedUser != null) {
-            closeLoginWindow();
             openMainWindow(authenticatedUser);
+            closeLoginWindow();
         } else {
             errorMessageLabel.setText("Username atau password salah untuk peran ini!");
         }
@@ -73,16 +74,14 @@ public class LoginViewController {
             Stage roleStage = new Stage();
             roleStage.setTitle("LANTARA - Pilih Peran");
             roleStage.setScene(new Scene(root, width, height));
-
             if (isMaximized) {
                 roleStage.setMaximized(true);
             }
-
             roleStage.show();
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }   
+    }
 
     private void setupKeyboardNavigation() {
         usernameField.setOnAction(event -> passwordField.requestFocus());
@@ -125,9 +124,11 @@ public class LoginViewController {
             double width = currentStage.getWidth();
             double height = currentStage.getHeight();
             boolean isMaximized = currentStage.isMaximized();
-            // Jendela login akan ditutup oleh closeLoginWindow() yang dipanggil sebelumnya
 
-            FXMLLoader fxmlLoader = new FXMLLoader(MainApp.class.getResource("view/dashboard-view.fxml"));
+            FXMLLoader fxmlLoader = new FXMLLoader(MainApp.class.getResource("/com/example/lantara/view/dashboard-view.fxml"));
+            if (fxmlLoader.getLocation() == null) {
+                 throw new IOException("Cannot find FXML file: /com/example/lantara/view/dashboard-view.fxml");
+            }
             Scene scene = new Scene(fxmlLoader.load(), width, height); 
             
             DashboardController dashboardController = fxmlLoader.getController();
@@ -136,17 +137,15 @@ public class LoginViewController {
             Stage mainStage = new Stage();
             mainStage.setTitle("LANTARA - Manajemen Armada");
             mainStage.setScene(scene);
-
             if (isMaximized) {
                 mainStage.setMaximized(true);
             }
-
             mainStage.show();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-
+    
     private void closeLoginWindow() {
         Stage stage = (Stage) loginButton.getScene().getWindow();
         stage.close();

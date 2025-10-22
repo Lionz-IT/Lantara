@@ -1,66 +1,74 @@
 package com.example.lantara.controller;
 
-import com.example.lantara.model.Driver;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.image.ImageView; // Pastikan ImageView diimpor jika Anda menggunakannya
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.VBox;
+import com.example.lantara.model.Driver;
+import com.example.lantara.model.Assignment;
+import com.example.lantara.model.Vehicle;
 
 public class DriverCardController {
 
-    @FXML private ImageView avatarImageView; // Sesuaikan jika Anda menggunakan ImageView
+    @FXML private ImageView avatarImageView;
     @FXML private Label namaLabel;
     @FXML private Label nikLabel;
     @FXML private Label simLabel;
     @FXML private Button editButton;
     @FXML private Button deleteButton;
 
-    private Driver currentDriver;
-    private DriverViewController driverViewController; // Referensi ke controller utama
+    // Variabel FXML baru
+    @FXML private Label statusLabel;
+    @FXML private VBox assignmentInfoBox;
+    @FXML private Label vehicleInfoLabel;
 
-    /**
-     * Mengatur data driver untuk kartu ini dan menyimpan referensi ke controller utama.
-     * @param driver Objek Driver yang akan ditampilkan.
-     * @param controller Controller utama (DriverViewController) untuk callback.
-     */
-    public void setData(Driver driver, DriverViewController controller) {
+    private Driver currentDriver;
+    private DriverViewController driverViewController;
+
+    // Metode setData diubah untuk menerima Assignment
+    public void setData(Driver driver, Assignment assignment, DriverViewController controller) {
         this.currentDriver = driver;
         this.driverViewController = controller;
 
-        // Set teks label berdasarkan data driver
         namaLabel.setText(driver.getNama());
         nikLabel.setText("NIK: " + driver.getNomorIndukKaryawan());
         simLabel.setText("SIM: " + driver.getNomorSIM());
 
-        // Di sini Anda juga bisa mengatur avatarImageView jika perlu
-        // Contoh: avatarImageView.setImage(new Image(...));
-    }
-
-    /**
-     * Dipanggil saat tombol 'Edit' pada kartu diklik.
-     * Metode ini akan memanggil metode openEditDriverWindow di DriverViewController.
-     */
-    @FXML
-    private void handleEditButton() { // Nama diubah agar cocok dengan contoh FXML
-        if (driverViewController != null && currentDriver != null) {
-            System.out.println("Meminta edit untuk driver: " + currentDriver.getNama());
-            driverViewController.openEditDriverWindow(currentDriver); // Panggil metode di parent controller
+        // Logika untuk menampilkan status dan info penugasan
+        if (assignment != null && "Berlangsung".equals(assignment.getStatusTugas())) {
+            // Jika sedang bertugas
+            statusLabel.setText("Bertugas");
+            statusLabel.getStyleClass().removeAll("driver-status-tersedia");
+            statusLabel.getStyleClass().add("driver-status-bertugas");
+            
+            Vehicle v = assignment.getVehicle();
+            if (v != null) {
+                vehicleInfoLabel.setText(v.getMerek() + " (" + v.getNomorPolisi() + ")");
+            } else {
+                vehicleInfoLabel.setText("N/A");
+            }
+            assignmentInfoBox.setVisible(true);
+            assignmentInfoBox.setManaged(true);
+            
         } else {
-            System.err.println("Error: DriverViewController atau currentDriver belum diinisialisasi.");
+            // Jika tersedia
+            statusLabel.setText("Tersedia");
+            statusLabel.getStyleClass().removeAll("driver-status-bertugas");
+            statusLabel.getStyleClass().add("driver-status-tersedia");
+            
+            assignmentInfoBox.setVisible(false);
+            assignmentInfoBox.setManaged(false);
         }
     }
 
-    /**
-     * Dipanggil saat tombol 'Hapus' pada kartu diklik.
-     * Metode ini akan memanggil metode confirmAndDeleteDriver di DriverViewController.
-     */
     @FXML
-    private void handleDeleteButton() { // Nama diubah agar cocok dengan contoh FXML
-        if (driverViewController != null && currentDriver != null) {
-            System.out.println("Meminta hapus untuk driver: " + currentDriver.getNama());
-            driverViewController.confirmAndDeleteDriver(currentDriver); // Panggil metode di parent controller
-        } else {
-            System.err.println("Error: DriverViewController atau currentDriver belum diinisialisasi.");
-        }
+    private void handleEditAction() {
+        System.out.println("Edit driver: " + currentDriver.getNama());
+    }
+
+    @FXML
+    private void handleDeleteAction() {
+        System.out.println("Hapus driver: " + currentDriver.getNama());
     }
 }

@@ -11,21 +11,14 @@ public class Driver {
         this.nomorSIM = nomorSIM;
     }
 
-    public void getDriverInfo() {
-        System.out.println("Pengemudi: " + nama + " (NIK: " + nomorIndukKaryawan + ")");
-    }
+    public String getNama() { return nama; }
+    public String getNomorIndukKaryawan() { return nomorIndukKaryawan; }
+    public String getNomorSIM() { return nomorSIM; }
 
-    public String getNama() {
-        return nama;
-    }
-
-    // --- TAMBAHKAN DUA METODE GETTER DI BAWAH INI ---
-
-    public String getNomorIndukKaryawan() {
-        return nomorIndukKaryawan;
-    }
-
-    public String getNomorSIM() {
-        return nomorSIM;
+    // --- TAMBAHKAN METODE INI ---
+    @Override
+    public String toString() {
+        // Ini akan ditampilkan di ChoiceBox
+        return nama + " (" + nomorIndukKaryawan + ")";
     }
 }
