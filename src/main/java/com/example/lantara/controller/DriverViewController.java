@@ -34,7 +34,6 @@ public class DriverViewController {
     public void initData(User user) {
         this.currentUser = user;
         loadDriverData();
-        setupAutoRefresh();
     }
     
     // Ganti nama metode ini menjadi public agar bisa diakses
@@ -70,16 +69,6 @@ public class DriverViewController {
                 e.printStackTrace();
             }
         }
-    }
-
-    private void setupAutoRefresh() {
-        KeyFrame keyFrame = new KeyFrame(Duration.seconds(1), event -> {
-            System.out.println("Refreshing data"); 
-            loadDriverData();
-        });
-        autoRefreshTimeline = new Timeline(keyFrame);
-        autoRefreshTimeline.setCycleCount(Timeline.INDEFINITE);
-        autoRefreshTimeline.play();
     }
 
     @FXML
