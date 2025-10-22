@@ -45,7 +45,10 @@ public class AssignmentViewController {
     private User currentUser;
     private ObservableList<Vehicle> availableVehicles = FXCollections.observableArrayList();
     private ObservableList<Driver> availableDrivers = FXCollections.observableArrayList();
-    private static ObservableList<Assignment> assignments = FXCollections.observableArrayList();
+    
+    // --- PERUBAHAN DARI 'private' MENJADI 'public' ---
+    public static ObservableList<Assignment> assignments = FXCollections.observableArrayList();
+    // -----------------------------------------------
 
     private final String VEHICLE_DATA_FILE = "vehicles.csv";
 
@@ -135,7 +138,7 @@ public class AssignmentViewController {
 
         updateVehicleStatusInFile(selectedVehicle.getNomorPolisi(), "Digunakan");
 
-        loadAvailableVehicles(); // Refresh dropdown kendaraan
+        loadAvailableVehicles();
         tujuanField.clear();
         vehicleChoiceBox.getSelectionModel().clearSelection();
         driverChoiceBox.getSelectionModel().clearSelection();

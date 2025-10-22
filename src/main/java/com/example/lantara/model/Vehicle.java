@@ -15,21 +15,25 @@ public class Vehicle {
         this.status = "Tersedia";
     }
 
+    // Method untuk mengubah status kendaraan
     public void updateStatus(String newStatus) {
         this.status = newStatus;
     }
 
+    // --- GETTER METHODS ---
     public String getNomorPolisi() { return nomorPolisi; }
     public String getStatus() { return status; }
     public String getMerek() { return merek; }
     public String getModel() { return model; }
     public int getTahun() { return tahun; }
+
+    // --- SETTER METHODS ---
     public void setNomorPolisi(String nomorPolisi) { this.nomorPolisi = nomorPolisi; }
     public void setMerek(String merek) { this.merek = merek; }
     public void setModel(String model) { this.model = model; }
     public void setTahun(int tahun) { this.tahun = tahun; }
 
-    // --- TAMBAHKAN METODE INI ---
+    // --- toString() METHOD ---
     @Override
     public String toString() {
         // Ini akan ditampilkan di ChoiceBox

@@ -15,7 +15,7 @@ public class Driver {
     public String getNomorIndukKaryawan() { return nomorIndukKaryawan; }
     public String getNomorSIM() { return nomorSIM; }
 
-    // --- TAMBAHKAN METODE INI ---
+    // --- toString() METHOD ---
     @Override
     public String toString() {
         // Ini akan ditampilkan di ChoiceBox

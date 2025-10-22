@@ -37,13 +37,18 @@ public class Assignment {
     public StringProperty tujuanProperty() { return tujuan; }
     public StringProperty statusTugasProperty() { return statusTugas; }
     public StringProperty tanggalPenugasanFormattedProperty() {
-        // Metode ini memformat tanggal agar tampil bagus di tabel
         return new SimpleStringProperty(tanggalPenugasan.get().format(DATE_FORMATTER));
     }
 
     // --- Standard Getters ---
     public Vehicle getVehicle() { return vehicle.get(); }
     public Driver getDriver() { return driver.get(); }
+    
+    // --- METODE YANG HILANG DITAMBAHKAN DI SINI ---
+    public String getStatusTugas() { 
+        return statusTugas.get(); 
+    }
+    // ------------------------------------------
 
     public void completeAssignment() {
         this.statusTugas.set("Selesai");

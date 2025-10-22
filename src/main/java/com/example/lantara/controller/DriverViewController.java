@@ -1,6 +1,7 @@
 package com.example.lantara.controller;
 
 import java.io.IOException;
+import java.util.Optional; // Import baru
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.collections.ObservableList;
@@ -8,6 +9,8 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert; // Import baru
+import javafx.scene.control.ButtonType; // Import baru
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Modality;
@@ -17,13 +20,11 @@ import com.example.lantara.MainApp;
 import com.example.lantara.model.DatabaseHelper;
 import com.example.lantara.model.Driver;
 import com.example.lantara.model.User;
-import com.example.lantara.model.Assignment; // Import Assignment
+import com.example.lantara.model.Assignment;
 
 public class DriverViewController {
 
-    @FXML
-    private FlowPane driverContainer;
-
+    @FXML private FlowPane driverContainer;
     private User currentUser;
     private ObservableList<Driver> driverList;
     private Timeline autoRefreshTimeline;
@@ -41,15 +42,11 @@ public class DriverViewController {
 
     private void populateDriverCards() {
         if (driverContainer == null) return;
-        
         driverContainer.getChildren().clear();
-        
-        // Ambil daftar penugasan yang sedang berlangsung
         ObservableList<Assignment> currentAssignments = AssignmentViewController.assignments;
 
         for (Driver driver : driverList) {
             try {
-                // Cari penugasan aktif untuk driver ini
                 Assignment activeAssignment = null;
                 for (Assignment assignment : currentAssignments) {
                     if (assignment.getDriver().getNomorIndukKaryawan().equals(driver.getNomorIndukKaryawan()) 
@@ -62,10 +59,7 @@ public class DriverViewController {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/lantara/view/driver-card.fxml"));
                 Pane card = loader.load();
                 DriverCardController controller = loader.getController();
-                
-                // Kirim driver DAN penugasannya (atau null) ke kartu
                 controller.setData(driver, activeAssignment, this);
-                
                 driverContainer.getChildren().add(card);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -75,7 +69,7 @@ public class DriverViewController {
 
     private void setupAutoRefresh() {
         KeyFrame keyFrame = new KeyFrame(Duration.seconds(1), event -> {
-            System.out.println("Resreshing data"); 
+            System.out.println("Refreshing data"); 
             loadDriverData();
         });
         autoRefreshTimeline = new Timeline(keyFrame);
@@ -101,6 +95,46 @@ public class DriverViewController {
             if (autoRefreshTimeline != null) autoRefreshTimeline.play();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    // --- METODE BARU UNTUK MEMBUKA FORM EDIT ---
+    public void openEditForm(Driver driver) {
+        try {
+            if (autoRefreshTimeline != null) autoRefreshTimeline.pause();
+            
+            FXMLLoader loader = new FXMLLoader(MainApp.class.getResource("view/edit-driver-view.fxml"));
+            Parent root = loader.load();
+            
+            EditDriverController controller = loader.getController();
+            controller.setDriver(driver); // Mengirim data driver ke form
+
+            Stage stage = new Stage();
+            stage.setTitle("Edit Data Pengemudi");
+            stage.setScene(new Scene(root));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.initOwner(driverContainer.getScene().getWindow());
+            stage.showAndWait();
+
+            loadDriverData(); // Muat ulang data setelah form ditutup
+            if (autoRefreshTimeline != null) autoRefreshTimeline.play();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    // --- METODE BARU UNTUK MENGHAPUS PENGEMUDI ---
+    public void deleteDriver(Driver driver) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Konfirmasi Hapus");
+        alert.setHeaderText("Hapus Pengemudi: " + driver.getNama());
+        alert.setContentText("Apakah Anda yakin ingin menghapus data pengemudi ini?");
+        
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            DatabaseHelper.deleteDriver(driver.getNomorIndukKaryawan()); // Hapus dari database
+            loadDriverData(); // Muat ulang data untuk refresh
         }
     }
 }

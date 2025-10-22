@@ -17,8 +17,6 @@ public class DriverCardController {
     @FXML private Label simLabel;
     @FXML private Button editButton;
     @FXML private Button deleteButton;
-
-    // Variabel FXML baru
     @FXML private Label statusLabel;
     @FXML private VBox assignmentInfoBox;
     @FXML private Label vehicleInfoLabel;
@@ -26,7 +24,6 @@ public class DriverCardController {
     private Driver currentDriver;
     private DriverViewController driverViewController;
 
-    // Metode setData diubah untuk menerima Assignment
     public void setData(Driver driver, Assignment assignment, DriverViewController controller) {
         this.currentDriver = driver;
         this.driverViewController = controller;
@@ -35,9 +32,7 @@ public class DriverCardController {
         nikLabel.setText("NIK: " + driver.getNomorIndukKaryawan());
         simLabel.setText("SIM: " + driver.getNomorSIM());
 
-        // Logika untuk menampilkan status dan info penugasan
         if (assignment != null && "Berlangsung".equals(assignment.getStatusTugas())) {
-            // Jika sedang bertugas
             statusLabel.setText("Bertugas");
             statusLabel.getStyleClass().removeAll("driver-status-tersedia");
             statusLabel.getStyleClass().add("driver-status-bertugas");
@@ -52,7 +47,6 @@ public class DriverCardController {
             assignmentInfoBox.setManaged(true);
             
         } else {
-            // Jika tersedia
             statusLabel.setText("Tersedia");
             statusLabel.getStyleClass().removeAll("driver-status-bertugas");
             statusLabel.getStyleClass().add("driver-status-tersedia");
@@ -64,11 +58,13 @@ public class DriverCardController {
 
     @FXML
     private void handleEditAction() {
-        System.out.println("Edit driver: " + currentDriver.getNama());
+        // Panggil metode openEditForm di controller utama
+        driverViewController.openEditForm(currentDriver);
     }
 
     @FXML
     private void handleDeleteAction() {
-        System.out.println("Hapus driver: " + currentDriver.getNama());
+        // Panggil metode deleteDriver di controller utama
+        driverViewController.deleteDriver(currentDriver);
     }
 }
