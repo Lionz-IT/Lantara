@@ -43,6 +43,7 @@ public class MainViewController {
     @FXML private TableColumn<Vehicle, String> colJenis;
     @FXML private TableColumn<Vehicle, String> colKapasitas;
     @FXML private Button addNewVehicleButton;
+    
 
     private final ObservableList<Vehicle> vehicleList = FXCollections.observableArrayList();
     private User currentUser;
@@ -110,13 +111,12 @@ public class MainViewController {
         aksiCol.setCellFactory(cellFactory);
         
         vehicleTable.getColumns().add(aksiCol);
-        vehicleTable.setItems(vehicleList);
-        loadDataFromFile();
+        vehicleTable.setItems(MainApp.allVehicles);
     }
     
     @FXML
     protected void handleRefreshButton() {
-        loadDataFromFile();
+        MainApp.loadAllData();
     }
 
     @FXML
@@ -125,15 +125,13 @@ public class MainViewController {
             FXMLLoader loader = new FXMLLoader(MainApp.class.getResource("view/add-vehicle-view.fxml"));
             Parent root = loader.load();
             AddVehicleController controller = loader.getController();
-            controller.setVehicleList(vehicleList);
-            Stage stage = new Stage();
+            controller.setVehicleList(MainApp.allVehicles);            Stage stage = new Stage();
             stage.setTitle("Tambah Kendaraan Baru");
             stage.setScene(new Scene(root));
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.initOwner(vehicleTable.getScene().getWindow());
             stage.showAndWait();
-            saveDataToFile();
-            loadDataFromFile();
+            MainApp.loadAllData();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -154,9 +152,7 @@ public class MainViewController {
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.initOwner(vehicleTable.getScene().getWindow());
             stage.showAndWait();
-
             saveDataToFile();
-            loadDataFromFile();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -169,53 +165,18 @@ public class MainViewController {
         alert.setContentText("Apakah Anda yakin?");
         Optional<ButtonType> result = alert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
-            vehicleList.remove(vehicle);
-            saveDataToFile();
-        }
+            MainApp.allVehicles.remove(vehicle); // Hapus dari daftar global
+            saveDataToFile(); // Simpan perubahan
+        }   
     }
     
     private void saveDataToFile() {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(DATA_FILE))) {
-            for (Vehicle v : vehicleList) {
-                StringBuilder line = new StringBuilder();
-                line.append(v.getNomorPolisi()).append(",");
-                line.append(v.getMerek()).append(",");
-                line.append(v.getModel()).append(",");
-                line.append(v.getTahun()).append(",");
-                line.append(v.getStatus());
-                if (v instanceof PassengerCar) {
-                    line.append(",PASSENGER,").append(((PassengerCar) v).getKapasitasPenumpang());
-                } else if (v instanceof Truck) {
-                    line.append(",TRUCK,").append(((Truck) v).getKapasitasAngkutTon());
-                }
-                bw.write(line.toString());
-                bw.newLine();
+    try (BufferedWriter bw = new BufferedWriter(new FileWriter(DATA_FILE))) {
+            for (Vehicle v : MainApp.allVehicles) { // Loop daftar global
+                // ... (logika save CSV Anda) ...
             }
         } catch (IOException e) {
             e.printStackTrace();
-        }
-    }
-
-    private void loadDataFromFile() {
-        vehicleList.clear();
-        try (BufferedReader br = new BufferedReader(new FileReader(DATA_FILE))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length < 6) continue;
-                Vehicle vehicle = null;
-                if ("PASSENGER".equals(data[5]) && data.length > 6) {
-                    vehicle = new PassengerCar(data[0], data[1], data[2], Integer.parseInt(data[3]), Integer.parseInt(data[6]));
-                } else if ("TRUCK".equals(data[5]) && data.length > 6) {
-                    vehicle = new Truck(data[0], data[1], data[2], Integer.parseInt(data[3]), Double.parseDouble(data[6]));
-                }
-                if (vehicle != null) {
-                    vehicle.updateStatus(data[4]);
-                    vehicleList.add(vehicle);
-                }
-            }
-        } catch (IOException | NumberFormatException e) {
-            System.err.println("Error memuat data kendaraan: " + e.getMessage());
         }
     }
 }

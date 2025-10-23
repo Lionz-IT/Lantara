@@ -43,12 +43,11 @@ public class DriverViewController {
     }
 
     private void populateDriverCards() {
-        if (driverContainer == null) return;
-        
+        if (driverContainer == null) return;       
         driverContainer.getChildren().clear();
         
-        ObservableList<Assignment> currentAssignments = AssignmentViewController.assignments;
-
+        ObservableList<Assignment> currentAssignments = MainApp.allAssignments;
+        
         for (Driver driver : driverList) {
             try {
                 Assignment activeAssignment = null;

@@ -11,6 +11,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.VBox;
+
+import com.example.lantara.MainApp;
 import com.example.lantara.model.Assignment;
 import com.example.lantara.model.User;
 import com.example.lantara.model.Vehicle;
@@ -93,7 +95,7 @@ public class DashboardContentController {
      */
     private void loadDynamicDashboardData() {
         // Diambil dari variabel statis (perlu diperbaiki jika aplikasi multi-user)
-        ObservableList<Assignment> allAssignments = AssignmentViewController.assignments;
+        ObservableList<Assignment> allAssignments = MainApp.allAssignments;
 
         notificationBox.getChildren().clear();
         assignmentBox.getChildren().clear();
