@@ -11,24 +11,20 @@ import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
-import com.example.lantara.model.*;
+import com.example.lantara.model.*; // Vehicle, PassengerCar, Truck, Driver, Assignment, DatabaseHelper
 
-/**
- * Kelas utama (entry point) aplikasi LANTARA.
- * Bertanggung jawab memuat database, data awal (CSV),
- * serta menampilkan tampilan pertama (landing/login page).
- */
 public class MainApp extends Application {
 
-    // === DATA GLOBAL YANG DAPAT DIAKSES SEMUA CONTROLLER ===
-    public static ObservableList<Vehicle> allVehicles = FXCollections.observableArrayList();
-    public static ObservableList<Driver> allDrivers = FXCollections.observableArrayList();
+    // ========= DATA GLOBAL =========
+    public static ObservableList<Vehicle>    allVehicles    = FXCollections.observableArrayList();
+    public static ObservableList<Driver>     allDrivers     = FXCollections.observableArrayList();
     public static ObservableList<Assignment> allAssignments = FXCollections.observableArrayList();
-    // ========================================================
+    // ===============================
 
-    // Lokasi file data (bisa disesuaikan sesuai kebutuhan)
-    private static final String VEHICLE_FILE = "vehicles.csv";
-    private static final String ASSIGNMENT_FILE = "assignments.csv";
+    // Nama file CSV
+    private static final String VEHICLE_FILE    = "vehicles.csv";     // nopol,merek,model,tahun,jenis,status,kapasitas
+    private static final String ASSIGNMENT_FILE = "assignments.csv";  // kode,nopol,nik,tujuan,tglPinjam,tglKembali,status
+    private static final String DRIVER_FILE     = "drivers.csv";      // nik,nama,no_sim[,status]
 
     @Override
     public void start(Stage stage) throws IOException {
@@ -41,95 +37,139 @@ public class MainApp extends Application {
         stage.show();
     }
 
-    /**
-     * Entry point program JavaFX.
-     * Inisialisasi database dan memuat semua data awal.
-     */
     public static void main(String[] args) {
-        DatabaseHelper.initializeDatabase();
+        // Inisialisasi DB jika kamu masih memakainya di tempat lain (aman untuk dibiarkan)
+        try {
+            DatabaseHelper.initializeDatabase();
+        } catch (Throwable ignore) {
+            // kalau kelas/DB tidak dipakai, biarkan
+        }
+
+        // Muat data dari CSV
         loadAllData();
+
         launch(args);
     }
 
-    /**
-     * Muat semua data: kendaraan, pengemudi, penugasan.
-     */
+    // ================== LOAD SEMUA CSV ==================
     public static void loadAllData() {
-        allDrivers.clear();
-        allDrivers.addAll(DatabaseHelper.getAllDrivers());
+        loadDriversFromCsv();      // coba load pengemudi dari CSV, fallback ke DB jika kosong
+        loadVehiclesFromCsv();
+        loadAssignmentsFromCsv();
+    }
 
-        // ==================== KENDARAAN ====================
+    private static void loadVehiclesFromCsv() {
         allVehicles.clear();
         ensureFileExists(VEHICLE_FILE);
+
         try (BufferedReader br = new BufferedReader(new FileReader(VEHICLE_FILE))) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length < 7) continue;
+                if (line.isBlank()) continue;
+                String[] d = line.split(",", -1);
+                if (d.length < 7) continue;
 
-                String nopol = data[0];
-                String merek = data[1];
-                String model = data[2];
-                int tahun = Integer.parseInt(data[3]);
-                String jenis = data[4];
-                String status = data[5];
+                String nopol  = d[0];
+                String merek  = d[1];
+                String model  = d[2];
+                int tahun     = safeParseInt(d[3], 0);
+                String jenis  = d[4];
+                String status = d[5];
 
-                Vehicle vehicle;
-                if ("Mobil Penumpang".equalsIgnoreCase(jenis)) {
-                    int kapasitas = Integer.parseInt(data[6]);
-                    vehicle = new PassengerCar(nopol, merek, model, tahun, kapasitas);
+                Vehicle v;
+                if ("Mobil Penumpang".equalsIgnoreCase(jenis) || "PASSENGER".equalsIgnoreCase(jenis)) {
+                    int kapasitas = safeParseInt(d[6], 0);
+                    v = new PassengerCar(nopol, merek, model, tahun, kapasitas);
                 } else {
-                    double kapasitas = Double.parseDouble(data[6]);
-                    vehicle = new Truck(nopol, merek, model, tahun, kapasitas);
+                    double ton = safeParseDouble(d[6], 0.0);
+                    v = new Truck(nopol, merek, model, tahun, ton);
                 }
-                vehicle.updateStatus(status);
-                allVehicles.add(vehicle);
+                v.updateStatus(status);
+                allVehicles.add(v);
             }
         } catch (IOException e) {
-            System.err.println("⚠️ Gagal membaca vehicles.csv: " + e.getMessage());
-        }
-
-        // ==================== PENUGASAN ====================
-        allAssignments.clear();
-        ensureFileExists(ASSIGNMENT_FILE);
-        try (BufferedReader br = new BufferedReader(new FileReader(ASSIGNMENT_FILE))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length < 7) continue;
-
-                String kode = data[0];
-                String nopol = data[1];
-                String nik = data[2];
-                String tujuan = data[3];
-                String tglPinjam = data[4];
-                String tglKembali = data[5];
-                String status = data[6];
-
-                Vehicle v = allVehicles.stream()
-                        .filter(veh -> veh.getNomorPolisi().equalsIgnoreCase(nopol))
-                        .findFirst()
-                        .orElse(null);
-
-                Driver d = allDrivers.stream()
-                        .filter(drv -> drv.getNomorIndukKaryawan().equalsIgnoreCase(nik))
-                        .findFirst()
-                        .orElse(null);
-
-                if (v != null && d != null) {
-                    allAssignments.add(new Assignment(kode, v, d, tujuan, tglPinjam, tglKembali, status));
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("⚠️ Gagal membaca assignments.csv: " + e.getMessage());
+            System.err.println("⚠️ Gagal membaca " + VEHICLE_FILE + ": " + e.getMessage());
         }
     }
 
-    /**
-     * Simpan semua data kembali ke CSV.
-     */
+    private static void loadAssignmentsFromCsv() {
+        allAssignments.clear();
+        ensureFileExists(ASSIGNMENT_FILE);
+
+        try (BufferedReader br = new BufferedReader(new FileReader(ASSIGNMENT_FILE))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.isBlank()) continue;
+                String[] d = line.split(",", -1);
+                if (d.length < 7) continue;
+
+                String kode       = d[0];
+                String nopol      = d[1];
+                String nik        = d[2];
+                String tujuan     = d[3];
+                String tglPinjam  = d[4];
+                String tglKembali = d[5];
+                String status     = d[6];
+
+                Vehicle v = allVehicles.stream()
+                        .filter(x -> x.getNomorPolisi().equalsIgnoreCase(nopol))
+                        .findFirst().orElse(null);
+                Driver drv = allDrivers.stream()
+                        .filter(x -> x.getNomorIndukKaryawan().equalsIgnoreCase(nik))
+                        .findFirst().orElse(null);
+
+                if (v != null && drv != null) {
+                    allAssignments.add(new Assignment(kode, v, drv, tujuan, tglPinjam, tglKembali, status));
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("⚠️ Gagal membaca " + ASSIGNMENT_FILE + ": " + e.getMessage());
+        }
+    }
+
+    private static void loadDriversFromCsv() {
+        allDrivers.clear();
+        ensureFileExists(DRIVER_FILE);
+
+        boolean gotFromCsv = false;
+        try (BufferedReader br = new BufferedReader(new FileReader(DRIVER_FILE))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.isBlank()) continue;
+                String[] d = line.split(",", -1);
+                if (d.length < 3) continue;
+
+                String nik   = d[0];
+                String nama  = d[1];
+                String noSim = d[2];
+                // kolom ke-4 opsional: status (diabaikan jika tidak ada)
+                Driver drv = new Driver(nik, nama, noSim);
+                allDrivers.add(drv);
+                gotFromCsv = true;
+            }
+        } catch (IOException e) {
+            System.err.println("⚠️ Gagal membaca " + DRIVER_FILE + ": " + e.getMessage());
+        }
+
+        // Fallback: kalau CSV kosong tapi kamu masih menyimpan di DB,
+        // ambil dari DB agar UI tetap tampil (tidak memaksa kamu pindah total sekarang).
+        if (!gotFromCsv) {
+            try {
+                allDrivers.addAll(DatabaseHelper.getAllDrivers());
+            } catch (Throwable ignore) {
+                // jika DatabaseHelper tidak dipakai, biarkan saja
+            }
+        }
+    }
+
+    // ================== SAVE SEMUA CSV ==================
     public static void saveAllData() {
-        // ==================== SIMPAN KENDARAAN ====================
+        saveVehiclesToCsv();
+        saveAssignmentsToCsv();
+        saveDriversToCsv();
+    }
+
+    public static void saveVehiclesToCsv() {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(VEHICLE_FILE))) {
             for (Vehicle v : allVehicles) {
                 String jenis = (v instanceof PassengerCar) ? "Mobil Penumpang" : "Truk";
@@ -149,10 +189,11 @@ public class MainApp extends Application {
                 bw.newLine();
             }
         } catch (IOException e) {
-            System.err.println("⚠️ Gagal menyimpan vehicles.csv: " + e.getMessage());
+            System.err.println("⚠️ Gagal menyimpan " + VEHICLE_FILE + ": " + e.getMessage());
         }
+    }
 
-        // ==================== SIMPAN PENUGASAN ====================
+    public static void saveAssignmentsToCsv() {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(ASSIGNMENT_FILE))) {
             for (Assignment a : allAssignments) {
                 String tglKembali = (a.getTanggalKembali() == null) ? "null" : a.getTanggalKembali().toString();
@@ -169,27 +210,47 @@ public class MainApp extends Application {
                 bw.newLine();
             }
         } catch (IOException e) {
-            System.err.println("⚠️ Gagal menyimpan assignments.csv: " + e.getMessage());
+            System.err.println("⚠️ Gagal menyimpan " + ASSIGNMENT_FILE + ": " + e.getMessage());
         }
     }
 
-    /**
-     * Membuat file kosong jika belum ada.
-     */
-    private static void ensureFileExists(String fileName) {
-        try {
-            Path path = Paths.get(fileName);
-            if (!Files.exists(path)) {
-                Files.createFile(path);
+    public static void saveDriversToCsv() {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(DRIVER_FILE))) {
+            for (Driver d : allDrivers) {
+                // format minimal 3 kolom (nik,nama,no_sim) — aman untuk UI sekarang
+                String line = String.join(",",
+                        d.getNomorIndukKaryawan(),
+                        d.getNama(),
+                        d.getNomorSIM()
+                );
+                bw.write(line);
+                bw.newLine();
             }
         } catch (IOException e) {
-            System.err.println("⚠️ Tidak dapat membuat file: " + fileName);
+            System.err.println("⚠️ Gagal menyimpan " + DRIVER_FILE + ": " + e.getMessage());
         }
     }
 
-    /**
-     * Pasang ikon aplikasi.
-     */
+    // ================== UTIL ==================
+    private static void ensureFileExists(String fileName) {
+        try {
+            Path p = Paths.get(fileName);
+            if (!Files.exists(p)) {
+                Files.createFile(p);
+            }
+        } catch (IOException e) {
+            System.err.println("⚠️ Tidak dapat membuat file " + fileName + ": " + e.getMessage());
+        }
+    }
+
+    private static int safeParseInt(String s, int def) {
+        try { return Integer.parseInt(s.trim()); } catch (Exception e) { return def; }
+    }
+
+    private static double safeParseDouble(String s, double def) {
+        try { return Double.parseDouble(s.trim()); } catch (Exception e) { return def; }
+    }
+
     public static void setStageIcon(Stage stage) {
         try {
             Image icon = new Image(MainApp.class.getResourceAsStream("/com/example/lantara/assets/logo.png"));
@@ -199,12 +260,9 @@ public class MainApp extends Application {
         }
     }
 
-    /**
-     * Simpan semua data saat aplikasi ditutup.
-     */
     @Override
     public void stop() {
-        saveAllData();
+        saveAllData();   // pastikan semua CSV tersimpan saat app ditutup
         Platform.exit();
     }
 }

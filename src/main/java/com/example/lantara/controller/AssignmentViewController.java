@@ -290,20 +290,26 @@ public class AssignmentViewController {
     }
 
     // ============== FILTER TABEL BERDASAR ROLE ==============
-    private void refreshTableForUser() {
-        if (currentUser == null) return;
+private void refreshTableForUser() {
+    if (currentUser == null) return;
 
-        if ("MANAJER".equalsIgnoreCase(currentUser.getRole())) {
-            assignmentTable.setItems(MainApp.allAssignments);
-        } else {
-            List<Assignment> mine = MainApp.allAssignments.stream()
-                    .filter(a -> a.getDriver() != null &&
-                                 a.getDriver().getNomorIndukKaryawan().equals(currentUser.getUsername()))
-                    .collect(Collectors.toList());
-            assignmentTable.setItems(FXCollections.observableArrayList(mine));
-        }
-        assignmentTable.refresh();
+    if ("MANAJER".equalsIgnoreCase(currentUser.getRole())) {
+        // Manajer melihat semua penugasan
+        assignmentTable.setItems(MainApp.allAssignments);
+
+    } else if ("STAF".equalsIgnoreCase(currentUser.getRole())) {
+        // Staf hanya melihat penugasan di mana dia adalah pengemudi yang ditugaskan
+        List<Assignment> myAssignments = MainApp.allAssignments.stream()
+            .filter(a -> a.getDriver() != null &&
+                         a.getDriver().getNama().equalsIgnoreCase(currentUser.getUsername())
+                         || a.getDriver().getNomorIndukKaryawan().equalsIgnoreCase(currentUser.getUsername()))
+            .collect(Collectors.toList());
+
+        assignmentTable.setItems(FXCollections.observableArrayList(myAssignments));
     }
+
+    assignmentTable.refresh();
+}
 
     // ============== UTILS ==============
     private void showAlert(AlertType type, String title, String content) {
