@@ -39,7 +39,6 @@ public class DashboardContentController {
     public void initData(User user) {
         this.currentUser = user;
         refreshDashboardData(); // Memuat semua data
-        setupAutoRefresh();     // Memulai timer
     }
 
     @FXML
@@ -55,23 +54,6 @@ public class DashboardContentController {
         loadDynamicDashboardData();
     }
 
-    /**
-     * Memulai timer auto-refresh yang memanggil refreshDashboardData() setiap 5 detik.
-     */
-    private void setupAutoRefresh() {
-        if (autoRefreshTimeline != null) {
-            autoRefreshTimeline.stop();
-        }
-        
-        KeyFrame keyFrame = new KeyFrame(Duration.seconds(5), event -> {
-            System.out.println("Refreshing dashboard data...");
-            refreshDashboardData();
-        });
-        
-        autoRefreshTimeline = new Timeline(keyFrame);
-        autoRefreshTimeline.setCycleCount(Timeline.INDEFINITE);
-        autoRefreshTimeline.play();
-    }
 
     /**
      * Memuat data panel Armada (Pie Chart dan Jumlah) dari file vehicles.csv.
