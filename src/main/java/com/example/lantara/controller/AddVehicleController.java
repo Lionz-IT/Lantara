@@ -2,17 +2,18 @@ package com.example.lantara.controller;
 
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
+
+import com.example.lantara.MainApp;
 import com.example.lantara.model.PassengerCar;
 import com.example.lantara.model.Truck;
 import com.example.lantara.model.Vehicle;
+
+import java.util.Optional;
 
 public class AddVehicleController {
 
@@ -30,163 +31,148 @@ public class AddVehicleController {
 
     private ObservableList<Vehicle> vehicleList;
 
-    // Metode ini akan dipanggil saat FXML dimuat
     @FXML
     public void initialize() {
-        setupArrowKeyNavigation();
+        // Isi pilihan jenis
         jenisChoiceBox.getItems().addAll("Mobil Penumpang", "Truk");
 
-        // Listener untuk menampilkan field yang sesuai dan menyesuaikan ukuran jendela
+        // Tampilkan field kapasitas sesuai jenis
         jenisChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            boolean isPassengerCar = "Mobil Penumpang".equals(newVal);
-            boolean isTruck = "Truk".equals(newVal);
+            boolean passenger = "Mobil Penumpang".equals(newVal);
+            boolean truck     = "Truk".equals(newVal);
 
-            kapasitasPenumpangBox.setVisible(isPassengerCar);
-            kapasitasPenumpangBox.setManaged(isPassengerCar);
+            kapasitasPenumpangBox.setVisible(passenger);
+            kapasitasPenumpangBox.setManaged(passenger);
 
-            kapasitasAngkutBox.setVisible(isTruck);
-            kapasitasAngkutBox.setManaged(isTruck);
-            
+            kapasitasAngkutBox.setVisible(truck);
+            kapasitasAngkutBox.setManaged(truck);
+
+            // Sesuaikan tinggi dialog otomatis
             Stage stage = (Stage) jenisChoiceBox.getScene().getWindow();
-            if (stage != null) { 
-                stage.sizeToScene();
-            }
+            if (stage != null) stage.sizeToScene();
         });
 
-        // --- PENAMBAHAN FUNGSI ENTER ---
-        
-        // 1. Pindahkan fokus saat Enter ditekan pada setiap field
-        nopolField.setOnAction(event -> merekField.requestFocus());
-        merekField.setOnAction(event -> modelField.requestFocus());
-        modelField.setOnAction(event -> tahunField.requestFocus());
-        tahunField.setOnAction(event -> jenisChoiceBox.requestFocus());
-        
-        // Saat 'Enter' ditekan di ChoiceBox, tampilkan dropdown
-        jenisChoiceBox.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.ENTER) {
-                jenisChoiceBox.show();
-            }
-        });        
+        // Navigasi cepat pakai ENTER / panah
+        setupArrowKeyNavigation();
 
-        // 2. Jalankan aksi simpan saat Enter ditekan di field terakhir
-        penumpangField.setOnAction(event -> saveButton.fire());
-        angkutField.setOnAction(event -> saveButton.fire());
-        
-        // ------------------------------------
-    }    
-    
-    // Metode ini dipanggil dari MainViewController untuk memberikan akses ke daftar kendaraan
+        // ENTER di field kapasitas = tekan tombol Simpan
+        penumpangField.setOnAction(e -> saveButton.fire());
+        angkutField.setOnAction(e -> saveButton.fire());
+    }
+
     public void setVehicleList(ObservableList<Vehicle> vehicleList) {
         this.vehicleList = vehicleList;
     }
 
     @FXML
     private void handleSaveButton() {
-        // Validasi input dasar
-        if (nopolField.getText().isEmpty() || merekField.getText().isEmpty() || jenisChoiceBox.getValue() == null) {
-            errorLabel.setText("Nomor Polisi, Merek, dan Jenis harus diisi!");
+        errorLabel.setText("");
+
+        // Validasi dasar
+        if (nopolField.getText().isEmpty() || merekField.getText().isEmpty()
+                || jenisChoiceBox.getValue() == null || tahunField.getText().isEmpty()) {
+            errorLabel.setText("Nomor Polisi, Merek, Tahun, dan Jenis harus diisi!");
             return;
         }
 
+        // Siapkan objek kendaraan (belum ditambahkan ke list)
+        Vehicle newVehicle;
         try {
-            String nopol = nopolField.getText();
-            String merek = merekField.getText();
-            String model = modelField.getText();
-            int tahun = Integer.parseInt(tahunField.getText());
+            String nopol = nopolField.getText().trim();
+            String merek = merekField.getText().trim();
+            String model = modelField.getText().trim();
+            int tahun    = Integer.parseInt(tahunField.getText().trim());
 
-            Vehicle newVehicle = null;
             if ("Mobil Penumpang".equals(jenisChoiceBox.getValue())) {
-                int kapasitas = Integer.parseInt(penumpangField.getText());
+                int kapasitas = Integer.parseInt(penumpangField.getText().trim());
                 newVehicle = new PassengerCar(nopol, merek, model, tahun, kapasitas);
-            } else if ("Truk".equals(jenisChoiceBox.getValue())) {
-                double kapasitas = Double.parseDouble(angkutField.getText());
+            } else {
+                double kapasitas = Double.parseDouble(angkutField.getText().trim());
                 newVehicle = new Truck(nopol, merek, model, tahun, kapasitas);
             }
-            
-            // Tambahkan kendaraan baru ke daftar
-            if (newVehicle != null) {
-                vehicleList.add(newVehicle);
-                closeWindow();
-            }
-
-        } catch (NumberFormatException e) {
-            errorLabel.setText("Tahun atau kapasitas harus berupa angka!");
+            newVehicle.updateStatus("Tersedia");
+        } catch (NumberFormatException ex) {
+            errorLabel.setText("Tahun/kapasitas harus berupa angka yang valid!");
+            return;
         }
+
+        // ===== Inti permintaanmu: form disembunyikan saat konfirmasi =====
+        Stage formStage  = (Stage) saveButton.getScene().getWindow();
+        Stage ownerStage = (Stage) formStage.getOwner(); // jendela daftar kendaraan
+        formStage.hide(); // Sembunyikan form sebelum konfirmasi ditampilkan
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Konfirmasi Simpan");
+        confirm.setHeaderText("Simpan Kendaraan Baru");
+        confirm.setContentText("Apakah Anda yakin ingin menyimpan data kendaraan ini?");
+        if (ownerStage != null) {
+            confirm.initOwner(ownerStage);
+            confirm.initModality(Modality.WINDOW_MODAL);
+        }
+
+        Optional<ButtonType> result = confirm.showAndWait();
+
+        if (result.isEmpty() || result.get() != ButtonType.OK) {
+            // User batal → tampilkan kembali form agar bisa mengubah data
+            formStage.show();
+            return;
+        }
+
+        // OK → simpan & tutup form permanen
+        if (vehicleList != null) {
+            vehicleList.add(newVehicle);
+        }
+        MainApp.saveAllData();   // persist ke CSV
+        formStage.close();       // form tidak muncul lagi
+
+        // (opsional) notifikasi sukses kecil
+        Alert info = new Alert(Alert.AlertType.INFORMATION);
+        info.setTitle("Sukses");
+        info.setHeaderText(null);
+        info.setContentText("Kendaraan berhasil disimpan.");
+        if (ownerStage != null) {
+            info.initOwner(ownerStage);
+            info.initModality(Modality.WINDOW_MODAL);
+        }
+        info.showAndWait();
     }
 
     @FXML
     private void handleCancelButton() {
-        closeWindow();
+        ((Stage) nopolField.getScene().getWindow()).close();
     }
 
-    private void closeWindow() {
-        Stage stage = (Stage) nopolField.getScene().getWindow();
-        stage.close();
-    }
-
+    // ---------- Navigasi keyboard ----------
     private void setupArrowKeyNavigation() {
-        // Dari Nomor Polisi (hanya bisa ke bawah)
-        nopolField.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.DOWN) {
-                merekField.requestFocus();
-            }
+        nopolField.setOnKeyPressed(e -> { if (e.getCode() == KeyCode.DOWN) merekField.requestFocus(); });
+
+        merekField.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.DOWN) modelField.requestFocus();
+            else if (e.getCode() == KeyCode.UP) nopolField.requestFocus();
         });
 
-        // Dari Merek
-        merekField.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.DOWN) {
-                modelField.requestFocus();
-            } else if (event.getCode() == KeyCode.UP) {
-                nopolField.requestFocus();
-            }
+        modelField.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.DOWN) tahunField.requestFocus();
+            else if (e.getCode() == KeyCode.UP) merekField.requestFocus();
         });
 
-        // Dari Model
-        modelField.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.DOWN) {
-                tahunField.requestFocus();
-            } else if (event.getCode() == KeyCode.UP) {
-                merekField.requestFocus();
-            }
+        tahunField.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.DOWN) jenisChoiceBox.requestFocus();
+            else if (e.getCode() == KeyCode.UP) modelField.requestFocus();
         });
 
-        // Dari Tahun
-        tahunField.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.DOWN) {
-                jenisChoiceBox.requestFocus();
-            } else if (event.getCode() == KeyCode.UP) {
-                modelField.requestFocus();
-            }
-        });
-
-        // Dari Jenis Kendaraan
-        jenisChoiceBox.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.ENTER) {
+        jenisChoiceBox.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.ENTER) {
                 jenisChoiceBox.show();
-            } else if (event.getCode() == KeyCode.DOWN) {
-                // Cek field mana yang terlihat untuk menentukan tujuan
-                if (kapasitasPenumpangBox.isVisible()) {
-                    penumpangField.requestFocus();
-                } else if (kapasitasAngkutBox.isVisible()) {
-                    angkutField.requestFocus();
-                }
-            } else if (event.getCode() == KeyCode.UP) {
+            } else if (e.getCode() == KeyCode.DOWN) {
+                if (kapasitasPenumpangBox.isVisible()) penumpangField.requestFocus();
+                else if (kapasitasAngkutBox.isVisible()) angkutField.requestFocus();
+            } else if (e.getCode() == KeyCode.UP) {
                 tahunField.requestFocus();
             }
         });
 
-        // Dari Kapasitas Penumpang (hanya bisa ke atas)
-        penumpangField.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.UP) {
-                jenisChoiceBox.requestFocus();
-            }
-        });
-
-        // Dari Kapasitas Angkut (hanya bisa ke atas)
-        angkutField.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.UP) {
-                jenisChoiceBox.requestFocus();
-            }
-        });
+        penumpangField.setOnKeyPressed(e -> { if (e.getCode() == KeyCode.UP) jenisChoiceBox.requestFocus(); });
+        angkutField.setOnKeyPressed(e -> { if (e.getCode() == KeyCode.UP) jenisChoiceBox.requestFocus(); });
     }
 }

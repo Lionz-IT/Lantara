@@ -1,13 +1,7 @@
 package com.example.lantara.controller;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.io.*;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import javafx.collections.FXCollections;
@@ -17,12 +11,16 @@ import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 
 import com.example.lantara.MainApp;
 import com.example.lantara.model.Assignment;
 import com.example.lantara.model.Driver;
-import com.example.lantara.model.Vehicle;
 import com.example.lantara.model.User;
+import com.example.lantara.model.Vehicle;
 
 public class AssignmentViewController {
 
@@ -37,6 +35,7 @@ public class AssignmentViewController {
     @FXML private TableColumn<Assignment, String> colTujuan;
     @FXML private TableColumn<Assignment, String> colTglPinjam;
     @FXML private TableColumn<Assignment, String> colStatus;
+    @FXML private TableColumn<Assignment, Void> colAksi; // Kolom baru
 
     private User currentUser;
     private ObservableList<Vehicle> availableVehicles = FXCollections.observableArrayList();
@@ -58,11 +57,9 @@ public class AssignmentViewController {
     @FXML
     public void initialize() {
         setupTableColumns();
-
-        // Penting: tabel langsung menggunakan daftar global dari MainApp
+        setupActionColumn(); // Kolom aksi
         assignmentTable.setItems(MainApp.allAssignments);
 
-        // Muat data awal kendaraan dan driver
         loadAvailableVehicles();
         loadAvailableDrivers();
     }
@@ -92,12 +89,49 @@ public class AssignmentViewController {
     }
 
     // =====================================
+    // Kolom Aksi (Tombol Selesaikan)
+    // =====================================
+    private void setupActionColumn() {
+        colAksi.setCellFactory(param -> new TableCell<>() {
+            private final Button btnSelesai = new Button("Selesaikan");
+
+            {
+                // Styling tombol
+                btnSelesai.setStyle("-fx-background-color: #1E90FF; -fx-text-fill: white; -fx-background-radius: 6;");
+                btnSelesai.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 12));
+                btnSelesai.setOnAction(event -> {
+                    Assignment assignment = getTableView().getItems().get(getIndex());
+                    handleSelesaikanTugas(assignment);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    Assignment assignment = getTableView().getItems().get(getIndex());
+                    if ("Selesai".equalsIgnoreCase(assignment.getStatusTugas())) {
+                        Label label = new Label("✔ Selesai");
+                        label.setTextFill(Color.web("#00A86B"));
+                        setGraphic(label);
+                    } else {
+                        setGraphic(new HBox(btnSelesai));
+                    }
+                }
+            }
+        });
+    }
+
+    // =====================================
     // Tampilan hanya untuk Manajer
     // =====================================
     private void setupVisibility() {
         boolean isManager = currentUser != null && "MANAJER".equalsIgnoreCase(currentUser.getRole());
         formPenugasan.setVisible(isManager);
         formPenugasan.setManaged(isManager);
+        colAksi.setVisible(isManager);
     }
 
     // =====================================
@@ -234,13 +268,13 @@ public class AssignmentViewController {
     }
 
     // =====================================
-    // Menyelesaikan Tugas
+    // Tombol Selesaikan Penugasan
     // =====================================
     private void handleSelesaikanTugas(Assignment assignment) {
         Alert alert = new Alert(AlertType.CONFIRMATION);
-        alert.setTitle("Konfirmasi Tugas");
+        alert.setTitle("Konfirmasi Penyelesaian");
         alert.setHeaderText("Selesaikan tugas " + assignment.getKodePenugasan() + "?");
-        alert.setContentText("Ini akan mengubah status kendaraan menjadi 'Tersedia'.");
+        alert.setContentText("Kendaraan akan dikembalikan ke status 'Tersedia'.");
 
         Optional<ButtonType> result = alert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
@@ -249,6 +283,7 @@ public class AssignmentViewController {
             updateVehicleStatusInFile(assignment.getVehicle().getNomorPolisi(), "Tersedia");
             loadAvailableVehicles();
             assignmentTable.refresh();
+            showAlert(AlertType.INFORMATION, "Berhasil", "Tugas berhasil diselesaikan.");
         }
     }
 

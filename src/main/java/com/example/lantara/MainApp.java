@@ -1,10 +1,9 @@
 package com.example.lantara;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-
+import java.io.*;
+import java.nio.file.*;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
@@ -12,12 +11,7 @@ import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
-import com.example.lantara.model.Assignment;
-import com.example.lantara.model.DatabaseHelper;
-import com.example.lantara.model.Driver;
-import com.example.lantara.model.PassengerCar;
-import com.example.lantara.model.Truck;
-import com.example.lantara.model.Vehicle;
+import com.example.lantara.model.*;
 
 /**
  * Kelas utama (entry point) aplikasi LANTARA.
@@ -26,75 +20,79 @@ import com.example.lantara.model.Vehicle;
  */
 public class MainApp extends Application {
 
-    // --- DAFTAR DATA GLOBAL YANG BISA DIAKSES DARI CONTROLLER LAIN ---
+    // === DATA GLOBAL YANG DAPAT DIAKSES SEMUA CONTROLLER ===
     public static ObservableList<Vehicle> allVehicles = FXCollections.observableArrayList();
     public static ObservableList<Driver> allDrivers = FXCollections.observableArrayList();
     public static ObservableList<Assignment> allAssignments = FXCollections.observableArrayList();
-    // -----------------------------------------------------------------
+    // ========================================================
+
+    // Lokasi file data (bisa disesuaikan sesuai kebutuhan)
+    private static final String VEHICLE_FILE = "vehicles.csv";
+    private static final String ASSIGNMENT_FILE = "assignments.csv";
 
     @Override
     public void start(Stage stage) throws IOException {
-        // Muat tampilan awal (landing page)
-        FXMLLoader fxmlLoader = new FXMLLoader(MainApp.class.getResource("view/landing-page-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 1280, 720);
+        FXMLLoader loader = new FXMLLoader(MainApp.class.getResource("view/landing-page-view.fxml"));
+        Scene scene = new Scene(loader.load(), 1280, 720);
 
         stage.setTitle("LANTARA - Lacak Armada Nusantara");
-        setStageIcon(stage); // Pasang ikon aplikasi
+        setStageIcon(stage);
         stage.setScene(scene);
         stage.show();
     }
 
     /**
-     * Titik masuk utama program.
-     * Inisialisasi database, load data CSV, lalu jalankan JavaFX.
+     * Entry point program JavaFX.
+     * Inisialisasi database dan memuat semua data awal.
      */
     public static void main(String[] args) {
         DatabaseHelper.initializeDatabase();
-        loadAllData(); // Muat data kendaraan, pengemudi, dan penugasan
+        loadAllData();
         launch(args);
     }
 
     /**
-     * Memuat semua data dari database dan file CSV.
+     * Muat semua data: kendaraan, pengemudi, penugasan.
      */
     public static void loadAllData() {
-        // 1️⃣ Muat data pengemudi dari Database
         allDrivers.clear();
         allDrivers.addAll(DatabaseHelper.getAllDrivers());
 
-        // 2️⃣ Muat data kendaraan dari CSV
+        // ==================== KENDARAAN ====================
         allVehicles.clear();
-        try (BufferedReader br = new BufferedReader(new FileReader("vehicles.csv"))) {
+        ensureFileExists(VEHICLE_FILE);
+        try (BufferedReader br = new BufferedReader(new FileReader(VEHICLE_FILE))) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] data = line.split(",");
-                if (data.length < 6) continue;
+                if (data.length < 7) continue;
 
-                Vehicle vehicle = null;
-                if ("PASSENGER".equalsIgnoreCase(data[5]) && data.length > 6) {
-                    vehicle = new PassengerCar(
-                            data[0], data[1], data[2],
-                            Integer.parseInt(data[3]), Integer.parseInt(data[6])
-                    );
-                } else if ("TRUCK".equalsIgnoreCase(data[5]) && data.length > 6) {
-                    vehicle = new Truck(
-                            data[0], data[1], data[2],
-                            Integer.parseInt(data[3]), Double.parseDouble(data[6])
-                    );
-                }
+                String nopol = data[0];
+                String merek = data[1];
+                String model = data[2];
+                int tahun = Integer.parseInt(data[3]);
+                String jenis = data[4];
+                String status = data[5];
 
-                if (vehicle != null) {
-                    vehicle.updateStatus(data[4]);
-                    allVehicles.add(vehicle);
+                Vehicle vehicle;
+                if ("Mobil Penumpang".equalsIgnoreCase(jenis)) {
+                    int kapasitas = Integer.parseInt(data[6]);
+                    vehicle = new PassengerCar(nopol, merek, model, tahun, kapasitas);
+                } else {
+                    double kapasitas = Double.parseDouble(data[6]);
+                    vehicle = new Truck(nopol, merek, model, tahun, kapasitas);
                 }
+                vehicle.updateStatus(status);
+                allVehicles.add(vehicle);
             }
-        } catch (IOException | NumberFormatException e) {
-            System.err.println("⚠️ Gagal memuat vehicles.csv: " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("⚠️ Gagal membaca vehicles.csv: " + e.getMessage());
         }
 
-        // 3️⃣ Muat data penugasan dari CSV (dan hubungkan dengan Vehicle & Driver)
+        // ==================== PENUGASAN ====================
         allAssignments.clear();
-        try (BufferedReader br = new BufferedReader(new FileReader("assignments.csv"))) {
+        ensureFileExists(ASSIGNMENT_FILE);
+        try (BufferedReader br = new BufferedReader(new FileReader(ASSIGNMENT_FILE))) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] data = line.split(",");
@@ -108,39 +106,105 @@ public class MainApp extends Application {
                 String tglKembali = data[5];
                 String status = data[6];
 
-                // Hubungkan dengan objek Vehicle & Driver
                 Vehicle v = allVehicles.stream()
-                        .filter(veh -> veh.getNomorPolisi().equals(nopol))
+                        .filter(veh -> veh.getNomorPolisi().equalsIgnoreCase(nopol))
                         .findFirst()
                         .orElse(null);
+
                 Driver d = allDrivers.stream()
-                        .filter(drv -> drv.getNomorIndukKaryawan().equals(nik))
+                        .filter(drv -> drv.getNomorIndukKaryawan().equalsIgnoreCase(nik))
                         .findFirst()
                         .orElse(null);
 
                 if (v != null && d != null) {
-                    Assignment assignment = new Assignment(
-                            kode, v, d, tujuan, tglPinjam, tglKembali, status
-                    );
-                    allAssignments.add(assignment);
+                    allAssignments.add(new Assignment(kode, v, d, tujuan, tglPinjam, tglKembali, status));
                 }
             }
         } catch (IOException e) {
-            System.err.println("⚠️ Gagal memuat assignments.csv: " + e.getMessage());
+            System.err.println("⚠️ Gagal membaca assignments.csv: " + e.getMessage());
         }
     }
 
     /**
-     * Mengatur ikon jendela aplikasi.
-     * Dipanggil dari MainApp maupun controller lain (misal: LoginViewController).
+     * Simpan semua data kembali ke CSV.
+     */
+    public static void saveAllData() {
+        // ==================== SIMPAN KENDARAAN ====================
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(VEHICLE_FILE))) {
+            for (Vehicle v : allVehicles) {
+                String jenis = (v instanceof PassengerCar) ? "Mobil Penumpang" : "Truk";
+                String kapasitas = (v instanceof PassengerCar)
+                        ? String.valueOf(((PassengerCar) v).getKapasitasPenumpang())
+                        : String.valueOf(((Truck) v).getKapasitasAngkutTon());
+                String line = String.join(",",
+                        v.getNomorPolisi(),
+                        v.getMerek(),
+                        v.getModel(),
+                        String.valueOf(v.getTahun()),
+                        jenis,
+                        v.getStatus(),
+                        kapasitas
+                );
+                bw.write(line);
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.err.println("⚠️ Gagal menyimpan vehicles.csv: " + e.getMessage());
+        }
+
+        // ==================== SIMPAN PENUGASAN ====================
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(ASSIGNMENT_FILE))) {
+            for (Assignment a : allAssignments) {
+                String tglKembali = (a.getTanggalKembali() == null) ? "null" : a.getTanggalKembali().toString();
+                String line = String.join(",",
+                        a.getKodePenugasan(),
+                        a.getVehicle().getNomorPolisi(),
+                        a.getDriver().getNomorIndukKaryawan(),
+                        a.getTujuan(),
+                        a.getTanggalPenugasan().toString(),
+                        tglKembali,
+                        a.getStatusTugas()
+                );
+                bw.write(line);
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.err.println("⚠️ Gagal menyimpan assignments.csv: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Membuat file kosong jika belum ada.
+     */
+    private static void ensureFileExists(String fileName) {
+        try {
+            Path path = Paths.get(fileName);
+            if (!Files.exists(path)) {
+                Files.createFile(path);
+            }
+        } catch (IOException e) {
+            System.err.println("⚠️ Tidak dapat membuat file: " + fileName);
+        }
+    }
+
+    /**
+     * Pasang ikon aplikasi.
      */
     public static void setStageIcon(Stage stage) {
         try {
-            // Pastikan ikon berada di path: src/main/resources/com/example/lantara/assets/lantara_logo.png
-            Image icon = new Image(MainApp.class.getResourceAsStream("assets/lantara_logo.png"));
+            Image icon = new Image(MainApp.class.getResourceAsStream("/com/example/lantara/assets/logo.png"));
             stage.getIcons().add(icon);
         } catch (Exception e) {
             System.err.println("⚠️ Gagal memuat ikon aplikasi: " + e.getMessage());
         }
+    }
+
+    /**
+     * Simpan semua data saat aplikasi ditutup.
+     */
+    @Override
+    public void stop() {
+        saveAllData();
+        Platform.exit();
     }
 }

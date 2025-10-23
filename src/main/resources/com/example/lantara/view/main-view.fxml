@@ -19,12 +19,12 @@
             <Label styleClass="content-title" text="Daftar Kendaraan" BorderPane.alignment="CENTER" />
          </left>
          <right>
-            <HBox alignment="CENTER_RIGHT" spacing="10.0" BorderPane.alignment="CENTER">
-               <children>
-                  <Button fx:id="addNewVehicleButton" onAction="#handleAddNewVehicle" styleClass="content-button" text="Tambah Kendaraan Baru" />
-                  <Button fx:id="refreshButton" onAction="#handleRefreshButton" styleClass="content-button" text="Muat Ulang" />
-               </children>
-            </HBox>
+   <HBox alignment="CENTER_RIGHT" spacing="10.0" BorderPane.alignment="CENTER">
+      <children>
+         <Button fx:id="addNewVehicleButton" onAction="#handleAddNewVehicle" styleClass="content-button" text="Tambah Kendaraan Baru" />
+      </children>
+   </HBox>
+
          </right>
          <VBox.margin>
             <Insets bottom="5.0" />
