@@ -4,13 +4,13 @@ import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import javafx.scene.layout.GridPane;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -21,13 +21,15 @@ import com.example.lantara.model.Assignment;
 import com.example.lantara.model.Driver;
 import com.example.lantara.model.User;
 import com.example.lantara.model.Vehicle;
+import com.example.lantara.model.DatabaseHelper;
 
 public class AssignmentViewController {
 
     @FXML private GridPane formPenugasan;
     @FXML private ChoiceBox<Vehicle> vehicleChoiceBox;
-    @FXML private ChoiceBox<Driver> driverChoiceBox;
+    @FXML private ChoiceBox<Driver>  driverChoiceBox;
     @FXML private TextField tujuanField;
+
     @FXML private TableView<Assignment> assignmentTable;
     @FXML private TableColumn<Assignment, String> colKode;
     @FXML private TableColumn<Assignment, String> colKendaraan;
@@ -35,18 +37,17 @@ public class AssignmentViewController {
     @FXML private TableColumn<Assignment, String> colTujuan;
     @FXML private TableColumn<Assignment, String> colTglPinjam;
     @FXML private TableColumn<Assignment, String> colStatus;
-    @FXML private TableColumn<Assignment, Void> colAksi; // Kolom baru
+    @FXML private TableColumn<Assignment, Void>   colAksi;
 
     private User currentUser;
-    private ObservableList<Vehicle> availableVehicles = FXCollections.observableArrayList();
-    private ObservableList<Driver> availableDrivers = FXCollections.observableArrayList();
 
-    private final String VEHICLE_DATA_FILE = "vehicles.csv";
-    private final String ASSIGNMENT_DATA_FILE = "assignments.csv";
+    private final ObservableList<Vehicle> availableVehicles = FXCollections.observableArrayList();
+    private final ObservableList<Driver>  availableDrivers  = FXCollections.observableArrayList();
 
-    // =====================================
-    // Inisialisasi Awal Controller
-    // =====================================
+    private static final String VEHICLE_DATA_FILE    = "vehicles.csv";
+    private static final String ASSIGNMENT_DATA_FILE = "assignments.csv";
+
+    // ============== INIT ==============
     public void initData(User user) {
         this.currentUser = user;
         setupVisibility();
@@ -57,51 +58,49 @@ public class AssignmentViewController {
     @FXML
     public void initialize() {
         setupTableColumns();
-        setupActionColumn(); // Kolom aksi
+        setupActionColumn();
         assignmentTable.setItems(MainApp.allAssignments);
 
         loadAvailableVehicles();
         loadAvailableDrivers();
     }
 
-    // =====================================
-    // Pengaturan Kolom Tabel
-    // =====================================
+    private void setupVisibility() {
+        boolean isManager = currentUser != null && "MANAJER".equalsIgnoreCase(currentUser.getRole());
+        formPenugasan.setVisible(isManager);
+        formPenugasan.setManaged(isManager);
+        colAksi.setVisible(isManager);
+    }
+
+    // ============== TABLE COLUMNS ==============
     private void setupTableColumns() {
         colKode.setCellValueFactory(new PropertyValueFactory<>("kodePenugasan"));
         colTujuan.setCellValueFactory(new PropertyValueFactory<>("tujuan"));
-        colTglPinjam.setCellValueFactory(cellData -> cellData.getValue().tanggalPenugasanFormattedProperty());
+        colTglPinjam.setCellValueFactory(a -> a.getValue().tanggalPenugasanFormattedProperty());
         colStatus.setCellValueFactory(new PropertyValueFactory<>("statusTugas"));
 
-        colKendaraan.setCellValueFactory(cellData -> {
-            Vehicle v = cellData.getValue().getVehicle();
-            return new javafx.beans.property.SimpleStringProperty(
-                v != null ? v.getNomorPolisi() : "-"
-            );
+        colKendaraan.setCellValueFactory(cd -> {
+            Vehicle v = cd.getValue().getVehicle();
+            return new javafx.beans.property.SimpleStringProperty(v != null ? v.getNomorPolisi() : "-");
         });
 
-        colPengemudi.setCellValueFactory(cellData -> {
-            Driver d = cellData.getValue().getDriver();
-            return new javafx.beans.property.SimpleStringProperty(
-                d != null ? d.getNama() : "-"
-            );
+        colPengemudi.setCellValueFactory(cd -> {
+            Driver d = cd.getValue().getDriver();
+            return new javafx.beans.property.SimpleStringProperty(d != null ? d.getNama() : "-");
         });
     }
 
-    // =====================================
-    // Kolom Aksi (Tombol Selesaikan)
-    // =====================================
+    // ============== ACTION COLUMN (SELESAIKAN) ==============
     private void setupActionColumn() {
         colAksi.setCellFactory(param -> new TableCell<>() {
             private final Button btnSelesai = new Button("Selesaikan");
 
             {
-                // Styling tombol
-                btnSelesai.setStyle("-fx-background-color: #1E90FF; -fx-text-fill: white; -fx-background-radius: 6;");
+                btnSelesai.setStyle("-fx-background-color:#1E90FF; -fx-text-fill:white; -fx-background-radius:6;");
                 btnSelesai.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 12));
-                btnSelesai.setOnAction(event -> {
-                    Assignment assignment = getTableView().getItems().get(getIndex());
-                    handleSelesaikanTugas(assignment);
+                btnSelesai.setOnAction(e -> {
+                    Assignment a = getTableView().getItems().get(getIndex());
+                    handleSelesaikanTugas(a);
                 });
             }
 
@@ -110,33 +109,22 @@ public class AssignmentViewController {
                 super.updateItem(item, empty);
                 if (empty) {
                     setGraphic(null);
+                    return;
+                }
+                Assignment a = getTableView().getItems().get(getIndex());
+                if ("Selesai".equalsIgnoreCase(a.getStatusTugas())) {
+                    Label done = new Label("✔ Selesai");
+                    done.setTextFill(Color.web("#00A86B"));
+                    setGraphic(done);
                 } else {
-                    Assignment assignment = getTableView().getItems().get(getIndex());
-                    if ("Selesai".equalsIgnoreCase(assignment.getStatusTugas())) {
-                        Label label = new Label("✔ Selesai");
-                        label.setTextFill(Color.web("#00A86B"));
-                        setGraphic(label);
-                    } else {
-                        setGraphic(new HBox(btnSelesai));
-                    }
+                    btnSelesai.setDisable(!"Berlangsung".equalsIgnoreCase(a.getStatusTugas()));
+                    setGraphic(new HBox(btnSelesai));
                 }
             }
         });
     }
 
-    // =====================================
-    // Tampilan hanya untuk Manajer
-    // =====================================
-    private void setupVisibility() {
-        boolean isManager = currentUser != null && "MANAJER".equalsIgnoreCase(currentUser.getRole());
-        formPenugasan.setVisible(isManager);
-        formPenugasan.setManaged(isManager);
-        colAksi.setVisible(isManager);
-    }
-
-    // =====================================
-    // Muat Data Awal Kendaraan & Driver
-    // =====================================
+    // ============== LOAD DATA ==============
     private void loadInitialData() {
         loadAvailableVehicles();
         loadAvailableDrivers();
@@ -153,18 +141,17 @@ public class AssignmentViewController {
     }
 
     private void loadAvailableDrivers() {
+        // tampilkan semua driver; status ditampilkan di kartu, sedangkan validasi boleh kamu tambah kalau ingin
         availableDrivers.setAll(MainApp.allDrivers);
         driverChoiceBox.setItems(availableDrivers);
     }
 
-    // =====================================
-    // Tombol Ajukan Penugasan
-    // =====================================
+    // ============== AJUKAN PENUGASAN ==============
     @FXML
     private void handleAjukanButton() {
         Vehicle selectedVehicle = vehicleChoiceBox.getValue();
-        Driver selectedDriver = driverChoiceBox.getValue();
-        String tujuan = tujuanField.getText().trim();
+        Driver  selectedDriver  = driverChoiceBox.getValue();
+        String  tujuan          = tujuanField.getText().trim();
 
         if (selectedVehicle == null || selectedDriver == null || tujuan.isEmpty()) {
             showAlert(AlertType.ERROR, "Input Tidak Lengkap",
@@ -172,21 +159,25 @@ public class AssignmentViewController {
             return;
         }
 
+        // Buat kode
         String kode = "PJ" + String.format("%03d", MainApp.allAssignments.size() + 1);
         Assignment newAssignment = new Assignment(kode, selectedVehicle, selectedDriver, tujuan);
 
-        // Tambahkan ke daftar global
+        // Tambah ke list global
         MainApp.allAssignments.add(newAssignment);
 
-        // Simpan ke file CSV
-        saveAssignmentsToFile();
-
-        // Update status kendaraan jadi "Digunakan"
+        // Update status kendaraan + driver (memori + persist)
+        selectedVehicle.updateStatus("Digunakan");
         updateVehicleStatusInFile(selectedVehicle.getNomorPolisi(), "Digunakan");
 
-        // Perbarui tampilan tabel dan form
-        assignmentTable.refresh();
-        loadAvailableVehicles();
+        setDriverStatus(selectedDriver.getNomorIndukKaryawan(), "Ditugaskan");
+
+        // Simpan assignments
+        saveAssignmentsToFile();
+
+        // Refresh tampilan
+        refreshTableForUser();
+        loadAvailableVehicles(); // hilangkan dari pilihan
         tujuanField.clear();
         vehicleChoiceBox.getSelectionModel().clearSelection();
         driverChoiceBox.getSelectionModel().clearSelection();
@@ -195,9 +186,45 @@ public class AssignmentViewController {
                 "Penugasan " + kode + " berhasil diajukan dan disimpan.");
     }
 
-    // =====================================
-    // Simpan Daftar Penugasan ke File CSV
-    // =====================================
+    // ============== SELESAIKAN TUGAS ==============
+    private void handleSelesaikanTugas(Assignment assignment) {
+        if (assignment == null || !"Berlangsung".equalsIgnoreCase(assignment.getStatusTugas())) return;
+
+        Alert alert = new Alert(AlertType.CONFIRMATION);
+        alert.setTitle("Konfirmasi Penyelesaian");
+        alert.setHeaderText("Selesaikan tugas " + assignment.getKodePenugasan() + "?");
+        alert.setContentText("Kendaraan akan dikembalikan ke status 'Tersedia' dan driver menjadi 'Tersedia'.");
+        Optional<ButtonType> result = alert.showAndWait();
+
+        if (result.isEmpty() || result.get() != ButtonType.OK) return;
+
+        // 1) Update assignment (tanggal kembali & status)
+        assignment.completeAssignment();
+
+        // 2) Kendaraan -> Tersedia (memori + CSV)
+        Vehicle v = assignment.getVehicle();
+        if (v != null) {
+            v.updateStatus("Tersedia");
+            updateVehicleStatusInFile(v.getNomorPolisi(), "Tersedia");
+        }
+
+        // 3) Driver -> Tersedia (DB + memori)
+        Driver d = assignment.getDriver();
+        if (d != null) {
+            setDriverStatus(d.getNomorIndukKaryawan(), "Tersedia");
+        }
+
+        // 4) Persist assignment CSV
+        saveAssignmentsToFile();
+
+        // 5) Refresh UI
+        refreshTableForUser();
+        loadAvailableVehicles();
+
+        showAlert(AlertType.INFORMATION, "Berhasil", "Tugas berhasil diselesaikan.");
+    }
+
+    // ============== PERSISTENCE HELPERS ==============
     private void saveAssignmentsToFile() {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(ASSIGNMENT_DATA_FILE))) {
             for (Assignment a : MainApp.allAssignments) {
@@ -216,12 +243,11 @@ public class AssignmentViewController {
             }
         } catch (IOException e) {
             e.printStackTrace();
+            showAlert(AlertType.ERROR, "Gagal Menyimpan", "Tidak bisa menulis berkas assignments.csv");
         }
     }
 
-    // =====================================
-    // Update Status Kendaraan di File CSV
-    // =====================================
+    /** Update kolom status kendaraan pada vehicles.csv. */
     private void updateVehicleStatusInFile(String nopolToUpdate, String newStatus) {
         List<String> lines = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(VEHICLE_DATA_FILE))) {
@@ -229,7 +255,8 @@ public class AssignmentViewController {
             while ((line = br.readLine()) != null) {
                 String[] data = line.split(",");
                 if (data.length > 0 && data[0].equals(nopolToUpdate)) {
-                    data[4] = newStatus;
+                    // kolom ke-5 (index 4) = status
+                    if (data.length > 4) data[4] = newStatus;
                     line = String.join(",", data);
                 }
                 lines.add(line);
@@ -249,52 +276,41 @@ public class AssignmentViewController {
         }
     }
 
-    // =====================================
-    // Refresh Data Tabel Berdasarkan Role
-    // =====================================
+    /** Update status driver di DB + sinkronkan ke list MainApp.allDrivers. */
+    private void setDriverStatus(String nik, String statusBaru) {
+        // DB
+        DatabaseHelper.updateDriverStatus(nik, statusBaru);
+        // Memori (sinkronkan objek yang ada di list)
+        for (Driver drv : MainApp.allDrivers) {
+            if (drv.getNomorIndukKaryawan().equals(nik)) {
+                drv.setStatus(statusBaru);
+                break;
+            }
+        }
+    }
+
+    // ============== FILTER TABEL BERDASAR ROLE ==============
     private void refreshTableForUser() {
         if (currentUser == null) return;
 
         if ("MANAJER".equalsIgnoreCase(currentUser.getRole())) {
             assignmentTable.setItems(MainApp.allAssignments);
-        } else if ("STAF".equalsIgnoreCase(currentUser.getRole())) {
-            List<Assignment> myAssignments = MainApp.allAssignments.stream()
+        } else {
+            List<Assignment> mine = MainApp.allAssignments.stream()
                     .filter(a -> a.getDriver() != null &&
-                            a.getDriver().getNomorIndukKaryawan().equals(currentUser.getUsername()))
+                                 a.getDriver().getNomorIndukKaryawan().equals(currentUser.getUsername()))
                     .collect(Collectors.toList());
-            assignmentTable.setItems(FXCollections.observableArrayList(myAssignments));
+            assignmentTable.setItems(FXCollections.observableArrayList(mine));
         }
         assignmentTable.refresh();
     }
 
-    // =====================================
-    // Tombol Selesaikan Penugasan
-    // =====================================
-    private void handleSelesaikanTugas(Assignment assignment) {
-        Alert alert = new Alert(AlertType.CONFIRMATION);
-        alert.setTitle("Konfirmasi Penyelesaian");
-        alert.setHeaderText("Selesaikan tugas " + assignment.getKodePenugasan() + "?");
-        alert.setContentText("Kendaraan akan dikembalikan ke status 'Tersedia'.");
-
-        Optional<ButtonType> result = alert.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            assignment.completeAssignment();
-            saveAssignmentsToFile();
-            updateVehicleStatusInFile(assignment.getVehicle().getNomorPolisi(), "Tersedia");
-            loadAvailableVehicles();
-            assignmentTable.refresh();
-            showAlert(AlertType.INFORMATION, "Berhasil", "Tugas berhasil diselesaikan.");
-        }
-    }
-
-    // =====================================
-    // Utilitas Notifikasi
-    // =====================================
-    private void showAlert(AlertType alertType, String title, String content) {
-        Alert alert = new Alert(alertType);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
+    // ============== UTILS ==============
+    private void showAlert(AlertType type, String title, String content) {
+        Alert a = new Alert(type);
+        a.setTitle(title);
+        a.setHeaderText(null);
+        a.setContentText(content);
+        a.showAndWait();
     }
 }

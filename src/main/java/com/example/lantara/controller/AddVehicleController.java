@@ -3,8 +3,8 @@ package com.example.lantara.controller;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.layout.VBox;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
@@ -28,38 +28,43 @@ public class AddVehicleController {
     @FXML private TextField angkutField;
     @FXML private Label errorLabel;
     @FXML private Button saveButton;
+    @FXML private Button cancelButton;
 
     private ObservableList<Vehicle> vehicleList;
 
     @FXML
     public void initialize() {
-        // Isi pilihan jenis
+        // Pilihan jenis
         jenisChoiceBox.getItems().addAll("Mobil Penumpang", "Truk");
 
         // Tampilkan field kapasitas sesuai jenis
-        jenisChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            boolean passenger = "Mobil Penumpang".equals(newVal);
-            boolean truck     = "Truk".equals(newVal);
+        jenisChoiceBox.getSelectionModel().selectedItemProperty().addListener((obs, ov, nv) -> {
+            boolean isPassenger = "Mobil Penumpang".equals(nv);
+            boolean isTruck     = "Truk".equals(nv);
 
-            kapasitasPenumpangBox.setVisible(passenger);
-            kapasitasPenumpangBox.setManaged(passenger);
+            kapasitasPenumpangBox.setVisible(isPassenger);
+            kapasitasPenumpangBox.setManaged(isPassenger);
 
-            kapasitasAngkutBox.setVisible(truck);
-            kapasitasAngkutBox.setManaged(truck);
+            kapasitasAngkutBox.setVisible(isTruck);
+            kapasitasAngkutBox.setManaged(isTruck);
 
-            // Sesuaikan tinggi dialog otomatis
-            Stage stage = (Stage) jenisChoiceBox.getScene().getWindow();
-            if (stage != null) stage.sizeToScene();
+            Stage st = (Stage) jenisChoiceBox.getScene().getWindow();
+            if (st != null) st.sizeToScene();
         });
 
-        // Navigasi cepat pakai ENTER / panah
+        // Navigasi keyboard
         setupArrowKeyNavigation();
 
-        // ENTER di field kapasitas = tekan tombol Simpan
+        // Enter di kapasitas = klik Simpan
         penumpangField.setOnAction(e -> saveButton.fire());
         angkutField.setOnAction(e -> saveButton.fire());
+
+        // Tombol default/cancel
+        if (saveButton != null)   saveButton.setDefaultButton(true);
+        if (cancelButton != null) cancelButton.setCancelButton(true);
     }
 
+    /** Dipanggil dari MainViewController untuk menyuntik list global */
     public void setVehicleList(ObservableList<Vehicle> vehicleList) {
         this.vehicleList = vehicleList;
     }
@@ -68,38 +73,23 @@ public class AddVehicleController {
     private void handleSaveButton() {
         errorLabel.setText("");
 
-        // Validasi dasar
-        if (nopolField.getText().isEmpty() || merekField.getText().isEmpty()
-                || jenisChoiceBox.getValue() == null || tahunField.getText().isEmpty()) {
-            errorLabel.setText("Nomor Polisi, Merek, Tahun, dan Jenis harus diisi!");
+        // Bangun objek kendaraan + validasi
+        Vehicle newVehicle = buildVehicleFromForm();
+        if (newVehicle == null) return;
+
+        // Cek duplikasi No. Polisi
+        String nopol = newVehicle.getNomorPolisi();
+        boolean exists = MainApp.allVehicles.stream()
+                .anyMatch(v -> v.getNomorPolisi().equalsIgnoreCase(nopol));
+        if (exists) {
+            showError("Nomor Polisi sudah digunakan. Gunakan nomor lain.");
             return;
         }
 
-        // Siapkan objek kendaraan (belum ditambahkan ke list)
-        Vehicle newVehicle;
-        try {
-            String nopol = nopolField.getText().trim();
-            String merek = merekField.getText().trim();
-            String model = modelField.getText().trim();
-            int tahun    = Integer.parseInt(tahunField.getText().trim());
-
-            if ("Mobil Penumpang".equals(jenisChoiceBox.getValue())) {
-                int kapasitas = Integer.parseInt(penumpangField.getText().trim());
-                newVehicle = new PassengerCar(nopol, merek, model, tahun, kapasitas);
-            } else {
-                double kapasitas = Double.parseDouble(angkutField.getText().trim());
-                newVehicle = new Truck(nopol, merek, model, tahun, kapasitas);
-            }
-            newVehicle.updateStatus("Tersedia");
-        } catch (NumberFormatException ex) {
-            errorLabel.setText("Tahun/kapasitas harus berupa angka yang valid!");
-            return;
-        }
-
-        // ===== Inti permintaanmu: form disembunyikan saat konfirmasi =====
+        // Sembunyikan form, tampilkan dialog konfirmasi di atas owner (jendela tabel)
         Stage formStage  = (Stage) saveButton.getScene().getWindow();
-        Stage ownerStage = (Stage) formStage.getOwner(); // jendela daftar kendaraan
-        formStage.hide(); // Sembunyikan form sebelum konfirmasi ditampilkan
+        Stage ownerStage = (Stage) formStage.getOwner();
+        formStage.hide();
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Konfirmasi Simpan");
@@ -111,21 +101,21 @@ public class AddVehicleController {
         }
 
         Optional<ButtonType> result = confirm.showAndWait();
-
         if (result.isEmpty() || result.get() != ButtonType.OK) {
-            // User batal → tampilkan kembali form agar bisa mengubah data
+            // batal → tampilkan kembali form
             formStage.show();
             return;
         }
 
-        // OK → simpan & tutup form permanen
+        // Simpan ke list global + persist, lalu tutup form
         if (vehicleList != null) {
             vehicleList.add(newVehicle);
+        } else {
+            MainApp.allVehicles.add(newVehicle);
         }
-        MainApp.saveAllData();   // persist ke CSV
-        formStage.close();       // form tidak muncul lagi
+        MainApp.saveAllData();
+        formStage.close();
 
-        // (opsional) notifikasi sukses kecil
         Alert info = new Alert(Alert.AlertType.INFORMATION);
         info.setTitle("Sukses");
         info.setHeaderText(null);
@@ -142,7 +132,79 @@ public class AddVehicleController {
         ((Stage) nopolField.getScene().getWindow()).close();
     }
 
-    // ---------- Navigasi keyboard ----------
+    // --------------------------------------------------
+    // Helper
+    // --------------------------------------------------
+
+    /** Bangun Vehicle dari form sekaligus validasi input. */
+    private Vehicle buildVehicleFromForm() {
+        String nopol = trim(nopolField.getText());
+        String merek = trim(merekField.getText());
+        String model = trim(modelField.getText());
+        String jenis = jenisChoiceBox.getValue();
+        String tahunStr = trim(tahunField.getText());
+
+        if (nopol.isEmpty() || merek.isEmpty() || tahunStr.isEmpty() || jenis == null) {
+            showError("Nomor Polisi, Merek, Tahun, dan Jenis harus diisi!");
+            return null;
+        }
+
+        int tahun;
+        try {
+            tahun = Integer.parseInt(tahunStr);
+            if (tahun < 1950 || tahun > 2100) {
+                showError("Tahun kendaraan tidak wajar (1950–2100).");
+                return null;
+            }
+        } catch (NumberFormatException ex) {
+            showError("Tahun harus berupa angka yang valid!");
+            return null;
+        }
+
+        Vehicle v;
+        try {
+            if ("Mobil Penumpang".equals(jenis)) {
+                String kapStr = trim(penumpangField.getText());
+                if (kapStr.isEmpty()) {
+                    showError("Isi kapasitas penumpang.");
+                    return null;
+                }
+                int penumpang = Integer.parseInt(kapStr);
+                if (penumpang <= 0) {
+                    showError("Kapasitas penumpang harus > 0.");
+                    return null;
+                }
+                v = new PassengerCar(nopol, merek, model, tahun, penumpang);
+            } else { // Truk
+                String kapStr = trim(angkutField.getText());
+                if (kapStr.isEmpty()) {
+                    showError("Isi kapasitas angkut (ton).");
+                    return null;
+                }
+                double ton = Double.parseDouble(kapStr);
+                if (ton <= 0) {
+                    showError("Kapasitas angkut harus > 0.");
+                    return null;
+                }
+                v = new Truck(nopol, merek, model, tahun, ton);
+            }
+        } catch (NumberFormatException ex) {
+            showError("Kapasitas harus berupa angka yang valid.");
+            return null;
+        }
+
+        v.updateStatus("Tersedia");
+        return v;
+    }
+
+    private void showError(String msg) {
+        if (errorLabel != null) errorLabel.setText(msg);
+        else new Alert(Alert.AlertType.ERROR, msg).showAndWait();
+    }
+
+    private static String trim(String s) { return s == null ? "" : s.trim(); }
+
+    // Navigasi keyboard
     private void setupArrowKeyNavigation() {
         nopolField.setOnKeyPressed(e -> { if (e.getCode() == KeyCode.DOWN) merekField.requestFocus(); });
 
